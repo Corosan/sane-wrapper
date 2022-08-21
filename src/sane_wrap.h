@@ -11,7 +11,7 @@
 
 #include <sane/sane.h>
 
-constexpr bool operator==(const ::SANE_Device** devices, std::default_sentinel_t) {
+inline constexpr bool operator==(const ::SANE_Device** devices, std::default_sentinel_t) {
     return ! *devices;
 }
 
@@ -36,9 +36,7 @@ class error_with_code : public error {
 
 public:
     explicit error_with_code(std::string msg_prefix, ::SANE_Status status)
-        : error(get_msg(std::move(msg_prefix), status))
-    {
-    }
+        : error(get_msg(std::move(msg_prefix), status)) {}
 };
 
 namespace details {
@@ -46,11 +44,11 @@ namespace details {
 template <class Msg, class ... Parms, class ... Args>
 void checked_call(Msg&& msg, ::SANE_Status (*f)(Parms ...), Args&& ... args) {
     if (auto status = (*f)(std::forward<Args>(args) ...); status != SANE_STATUS_GOOD) {
-        if constexpr (std::is_convertible_v<std::decay_t<Msg>, std::string>) {
+        if constexpr (std::is_convertible_v<Msg, std::string>)
             throw error_with_code(std::forward<Msg>(msg), status);
-        } else if constexpr (std::is_invocable_v<Msg>) {
+        else if constexpr (std::is_invocable_v<Msg>)
             throw error_with_code(std::invoke(std::forward<Msg>(msg)), status);
-        } else
+        else
             static_assert(!sizeof(Msg));
     }
 }
@@ -84,9 +82,7 @@ public:
         const ::SANE_Device* m_impl;
 
         device_info() = default;
-        device_info(const ::SANE_Device* impl) : m_impl(impl)
-        {
-        }
+        device_info(const ::SANE_Device* impl) : m_impl(impl) {}
     };
 
     /**
@@ -126,9 +122,7 @@ public:
         static inline const ::SANE_Device* m_devices_end = nullptr;
         const ::SANE_Device** m_devices = &m_devices_end;
 
-        device_info_iterator(const ::SANE_Device** devices) : m_devices(devices)
-        {
-        }
+        device_info_iterator(const ::SANE_Device** devices) : m_devices(devices) {}
     };
 
     auto get_device_infos(bool reload = false) {
@@ -194,6 +188,8 @@ struct device_impl final {
 } // ns details
 
 class device_option {
+public:
+    virtual ~device_option() = default;
 };
 
 /**

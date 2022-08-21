@@ -7,6 +7,21 @@ lib::wptr_t lib::m_inst_wptr;
 device::option_iterator::option_iterator() = default;
 
 device::option_iterator::reference device::option_iterator::operator*() const {
+    const auto dev = m_device.lock();
+    const auto pos = static_cast<std::size_t>(m_pos);
+
+    if (! dev || m_generation != dev->m_option_generation)
+        return device_option{};
+
+    if (pos >= dev->m_options.size())
+        dev->m_options.resize(pos + 1);
+
+    if (! dev->m_options[pos]) {
+        dev->m_options[pos] = ::sane_get_option_descriptor(dev->m_handle, static_cast<::SANE_Int>(pos));
+        if (! dev->m_options[pos])
+            throw error("internal SANE error while getting option idx=" + std::to_string(pos));
+    }
+
     return device_option{};
 }
 
