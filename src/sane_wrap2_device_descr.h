@@ -92,6 +92,8 @@ private:
 
 inline void swap(device_descr& l, device_descr& r) { l.swap(r); }
 
+static_assert(std::bidirectional_iterator<device_descr_iterator>);
+
 } // ns vg_sane
 
 namespace std {

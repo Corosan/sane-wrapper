@@ -116,22 +116,22 @@
  * some option's value. Either it will be implemented via complicated logic in GUI code or... it
  * must be implemented in the library wrapper.
  *
- * Moving forward with the complicated design, let's the option will be some value-type descriptor
- * offering get/set/notification functionality:
+ * As long as the underlying library doesn't offer facilities for tracking what exactly changed in
+ * the options set, the wrapper library must fully reload all options and use sophisticated logic
+ * for deciding, which options added/removed/changed. Let's stand on a simple approach instead so
+ * far: the wrapper library allow to iterate over option descripions only. If particular changing
+ * operation signals that something could change, it's a user responsibility to refresh their state
+ * by repeated reading of options' descriptions and values.
  *
  * ~~~~~~~~{.cpp}
- * auto dpi_changed = [](option o) { ...};
- *
- * for (option o : dev.get_options()) {
- *     std::cout << o.name() << std::endl;
- *     ...
- *     if (o.name() == "brightness")
- *         o.set(100); // this can potentially change other options' values or the range
- *
- *     if (o.name() == "dpi")
- *         o.set_notification_cb(dpi_changed); // this cb will be called if the option's value
- *                                             // changed or the option has gone
+ * int idx_br = {};
+ * for (auto& [idx, descriptor] : dev.get_options()) {
+ *     std::cout << idx << ": " << descriptor->name << std::endl;
+ *     if (descriptor->name == std::string{"brightness"})
+ *         idx_br = idx;
  * }
+ * ...
+ * dev.set_option(idx_br, 100); // set brightness, potentially can change everything
  * ~~~~~~~~
  *
  * As long as an option has a type of its value (boolean, integer, string...), it operates with
@@ -141,6 +141,8 @@
 
 #include "sane_wrap2_device_descr.h"
 
+#include <cstdint>
+#include <utility>
 #include <memory>
 #include <ranges>
 
@@ -156,29 +158,93 @@ class lib;
 
 class device final {
 public:
+    class option_iterator final {
+    public:
+        using difference_type = std::intptr_t;
+        using value_type = std::pair<int, const ::SANE_Option_Descriptor*>;
+        using reference_type = value_type;
+        using pointer_type = const value_type*;
+        using iterator_category = std::random_access_iterator_tag;
+
+        option_iterator() {}
+
+        reference_type operator*() const { return operator[](0); }
+        reference_type operator[](int) const;
+        pointer_type operator->() const;
+
+        option_iterator& operator++() { ++m_pos; return *this; }
+        option_iterator operator++(int) { auto t = *this; ++m_pos; return t; }
+        option_iterator& operator--() { --m_pos; return *this; }
+        option_iterator operator--(int) { auto t = *this; --m_pos; return t; }
+
+        option_iterator& operator+=(int v) { m_pos += v; return *this; }
+        option_iterator& operator-=(int v) { m_pos -= v; return *this; }
+
+        difference_type operator-(const option_iterator& r) const {
+            return m_pos - r.m_pos;
+        }
+
+        bool operator==(const option_iterator&) const = default;
+        auto operator<=>(const option_iterator&) const = default;
+
+        friend option_iterator operator+(const option_iterator& i, int v) {
+            return {i.m_parent, i.m_pos + v};
+        }
+        friend option_iterator operator+(int v, const option_iterator& i) {
+            return {i.m_parent, i.m_pos + v};
+        }
+        friend option_iterator operator-(const option_iterator& i, int v) {
+            return {i.m_parent, i.m_pos - v};
+        }
+        friend option_iterator operator-(int v, const option_iterator& i) {
+            return {i.m_parent, v - i.m_pos};
+        }
+
+    private:
+        friend device;
+
+        const device* m_parent = {};
+        int m_pos = 1;
+
+        option_iterator(const device* parent, int pos)
+            : m_parent{parent}, m_pos{pos} {
+        }
+    };
+
     device() = default;
-    device(const device&) = delete;
-    device& operator=(const device&) = delete;
-    ~device();
+    device(const device&& r)
+        : m_handle{r.m_handle}, m_name{std::move(r.m_name)} {
+    }
+    device& operator=(const device&& r) {
+        auto t = std::move(r);
+        swap(t);
+        return *this;
+    }
+    ~device() {
+        if (m_handle)
+            ::sane_close(m_handle);
+    }
+
+    void swap(device& r);
+
+    std::ranges::subrange<option_iterator>
+    get_option_descrs() const;
 
 private:
     friend lib;
-    ::SANE_Handle m_handle{};
+
+    ::SANE_Handle m_handle = {};
     std::string m_name;
 
     device(::SANE_Handle h, std::string name)
         : m_handle(h), m_name(std::move(name)) {}
 };
 
+inline void swap(device& l, device& r) { l.swap(r); }
+
 class lib final {
 public:
-    static lib* instance() {
-        if (! m_instance)
-            m_instance.reset(new lib);
-        return m_instance.get();
-    }
-
-    static void close() { m_instance.reset(); }
+    static lib* instance();
 
     std::ranges::subrange<device_descr_iterator, std::default_sentinel_t>
     get_device_descrs(bool reload = false);
@@ -189,16 +255,13 @@ public:
     device open_device(const char* name);
 
 private:
-    friend std::default_delete<lib>;
-
-    static std::unique_ptr<lib> m_instance;
-
+    ::SANE_Int m_sane_ver{};
     const ::SANE_Device **m_sane_devices = {};
 
     lib();
     ~lib();
 };
 
-static_assert(std::bidirectional_iterator<device_descr_iterator>);
+static_assert(std::random_access_iterator<device::option_iterator>);
 
 } // ns vg_sane
