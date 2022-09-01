@@ -3,7 +3,7 @@
 
 // #include "sane_wrap.h"
 // #include "sane_wrap2.h"
-#include "v3/sane_wrapper.h"
+#include <sane-pp.h>
 
 // const int& f();
 // template<class T> struct D;
@@ -68,7 +68,7 @@ int main() {
             auto dev = sane_lib->open_device(some_name.c_str());
 
             std::cout << "options:\n";
-            for (auto p : dev.get_option_infos()) {
+            for (auto [idx, p] : dev.get_option_infos()) {
                 std::cout
                     << "  [" << p->name << "]\n"
                     << "    title: " << (p->title ? p->title : "") << '\n'
