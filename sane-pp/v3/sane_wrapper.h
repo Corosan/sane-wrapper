@@ -11,14 +11,19 @@
 #include <functional>
 #include <ranges>
 
+#ifdef SANE_PP_STUB
+#include <thread>
+#include <chrono>
+#endif
+
 #include "sane_wrapper_utils.h"
 
 #include <sane/sane.h>
-
+/*
 inline bool operator==(const ::SANE_Device** devices, std::default_sentinel_t) {
     return ! *devices;
 }
-
+*/
 namespace vg_sane {
 
 class device;
@@ -61,9 +66,21 @@ public:
      */
     auto get_device_infos() const {
         const ::SANE_Device** devices;
+#ifndef SANE_PP_STUB
         details::checked_call("unable to get list of devices", ::sane_get_devices, &devices, SANE_TRUE);
-        return std::ranges::subrange<const ::SANE_Device**, std::default_sentinel_t>(
-            devices, std::default_sentinel);
+#else
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(1s);
+        static const SANE_Device device_descrs[] = {{"dev 1", "factory 1", "dev super rk1", "mfu"},
+            {"dev 2", "factory zzz", "not so super dev", "printer"}};
+        static const SANE_Device* device_descr_ptrs[] = {&device_descrs[0], &device_descrs[1], nullptr};
+        devices = device_descr_ptrs;
+#endif
+        // non-sized range could be returned instead (thus providing sentinel as the end iterator),
+        // but having size property drammatically simplifies user's code
+        auto d_end = devices;
+        for (; *d_end; ++d_end);
+        return std::ranges::subrange(devices, d_end);
     }
 
     /**
@@ -75,7 +92,9 @@ public:
     device open_device(const char* name);
 
     ~lib() {
+#ifndef SANE_PP_STUB
         ::sane_exit();
+#endif
     }
 
 private:
@@ -85,7 +104,11 @@ private:
     std::set<std::string> m_opened_device_names;
 
     lib() {
+#ifndef SANE_PP_STUB
         details::checked_call("unable to initialize library", &::sane_init, &m_sane_ver, nullptr);
+#else
+        m_sane_ver = 1;
+#endif
     }
 
     lib(const lib&) = delete;
@@ -188,7 +211,7 @@ private:
 
 inline void swap(device& l, device& r) { l.swap(r); }
 
-device lib::open_device(const char* name) {
+inline device lib::open_device(const char* name) {
     ::SANE_Handle h = {};
     std::string sname = name;
     auto it_names = m_opened_device_names.find(sname);
@@ -205,7 +228,7 @@ device lib::open_device(const char* name) {
         }};
 }
 
-std::ranges::subrange<device::option_iterator> device::get_option_infos() const {
+inline std::ranges::subrange<device::option_iterator> device::get_option_infos() const {
     auto err = [this](){
         return "unable to get options count from device \"" + m_name + '"';
     };
@@ -221,7 +244,7 @@ std::ranges::subrange<device::option_iterator> device::get_option_infos() const 
     return {option_iterator{this, 1}, option_iterator{this, size}};
 }
 
-const ::SANE_Option_Descriptor* device::get_option_info(int pos) const {
+inline const ::SANE_Option_Descriptor* device::get_option_info(int pos) const {
     auto tpos = static_cast<std::size_t>(pos);
 
     if (tpos >= m_cached_option_infos.size())
@@ -235,7 +258,7 @@ const ::SANE_Option_Descriptor* device::get_option_info(int pos) const {
     return m_cached_option_infos[tpos];
 }
 
-opt_value_t device::get_option(int pos) const {
+inline opt_value_t device::get_option(int pos) const {
     void* data = {};
     auto descr = get_option_info(pos);
 
@@ -256,7 +279,7 @@ opt_value_t device::get_option(int pos) const {
     }
 }
 
-device::set_opt_result_t device::set_option(int pos, opt_value_t val) {
+inline device::set_opt_result_t device::set_option(int pos, opt_value_t val) {
     void* data = {};
     auto descr = get_option_info(pos);
 
@@ -278,6 +301,8 @@ device::set_opt_result_t device::set_option(int pos, opt_value_t val) {
         // since the backend will stop reading the option value upon
         // encountering the first NUL terminator in the string."
         data = get<3>(val);
+        break;
+    default:
         break;
     }
 

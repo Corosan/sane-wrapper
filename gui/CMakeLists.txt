@@ -21,8 +21,8 @@ set(PROJECT_SOURCES
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
-        worker.h
-        worker.cpp
+        scanworker.h
+        scanworker.cpp
         ${TS_FILES}
 )
 
@@ -67,6 +67,7 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(gui)
 endif()
 
+set(SANE_PP_STUB ON)
 add_subdirectory(../sane-pp sane-pp)
 
 target_link_libraries(gui PRIVATE sane-pp)

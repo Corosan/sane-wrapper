@@ -14,23 +14,31 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="71"/>
+        <location filename="mainwindow.ui" line="74"/>
         <source>Vendor:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="85"/>
+        <location filename="mainwindow.ui" line="91"/>
         <source>Model:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="99"/>
+        <location filename="mainwindow.ui" line="108"/>
         <source>Type:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="118"/>
+        <location filename="mainwindow.ui" line="127"/>
         <source>Parameters</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ScanWorker</name>
+    <message>
+        <location filename="scanworker.cpp" line="16"/>
+        <source>unable to get device infos: %1</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
