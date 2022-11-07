@@ -76,6 +76,10 @@ int main() {
                     << "    type : " << p->type
                     << std::endl;
             }
+
+            auto opts = dev.get_option_infos();
+            if (opts.size() > 1)
+                std::cout << opts[1].second->name << std::endl;
         }
 
     } catch (const std::exception& e) {

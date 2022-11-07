@@ -6,6 +6,7 @@
 #include <QThread>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
+#include <QStyledItemDelegate>
 
 #include <QtGlobal>
 #include <QDebug>
@@ -18,47 +19,15 @@ QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
-/*
-    // TODO: whether to replace model each time underlying data is changed? Or have 'set' method
-    // which resets the model instead? The question is related to all the models here.
-    class DeviceModel : public QAbstractListModel {
-        vg_sane::device_infos_t m_deviceInfos;
 
-    public:
-        int rowCount(const QModelIndex &parent) const override {
-            return parent == QModelIndex() ? m_deviceInfos.size() : 0;
-        }
-        QVariant data(const QModelIndex &index, int role) const override;
-        auto& get(int row) const {
-            return m_deviceInfos[row];
-        }
-        void set(vg_sane::device_infos_t val);
-    };
-
-    class OptionModel : public QAbstractTableModel {
-        vg_sane::device_opts_t m_deviceOptions;
-
-    public:
-        int rowCount(const QModelIndex &parent) const override {
-            return parent == QModelIndex() ? m_deviceOptions.size() : 0;
-        }
-        int columnCount(const QModelIndex &parent) const override {
-            return parent == QModelIndex() ? 3 : 0;
-        }
-        QVariant data(const QModelIndex &index, int role) const override;
-        void set(vg_sane::device_opts_t val);
-    };
-*/
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
-//    void scanDeviceOptionsGot(vg_sane::device_opts_t);
     void deviceInfoModelReset();
-
-    void gotScanDeviceInfos(vg_sane::device_infos_t);
-    void scanErrorHappened(QString);
+    void deviceInfoUpdateFinished(bool);
+    void scanError(std::string);
 
     void on_btnReloadDevs_clicked();
     void on_comboBox_devices_currentIndexChanged(int index);
@@ -66,10 +35,36 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QThread m_scanThread;
-//    DeviceModel m_scanDeviceModel;
-//    OptionModel m_scanDeviceOptModel;
+    ScanWorker* m_scanWorker;
+};
 
-signals:
-    void getScanDeviceInfos();
-//    void openScanDevice(std::string);
+class OptionItemDelegate : public QStyledItemDelegate {
+    Q_OBJECT
+
+    using Base_t = QStyledItemDelegate;
+
+    mutable int m_editingRow = -1;
+
+public:
+    using Base_t::QStyledItemDelegate;
+
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+        const QModelIndex &index) const override;
+
+    void destroyEditor(QWidget *editor, const QModelIndex &index) const override {
+        m_editingRow = -1;
+        Base_t::destroyEditor(editor, index);
+    }
+
+    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
+
+protected:
+    void initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const override {
+        Base_t::initStyleOption(option, index);
+
+        // No check boxes should be displayed while editing
+        if (m_editingRow != -1 && index.row() == m_editingRow && index.parent() == QModelIndex() && index.column() == 1) {
+            option->features &= ~QStyleOptionViewItem::HasCheckIndicator;
+        }
+    }
 };

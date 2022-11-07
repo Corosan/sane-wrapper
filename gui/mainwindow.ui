@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>717</width>
-    <height>520</height>
+    <width>887</width>
+    <height>621</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>717</width>
+     <width>887</width>
      <height>32</height>
     </rect>
    </property>
@@ -34,18 +34,12 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QVBoxLayout" name="verticalLayout">
-     <property name="sizeConstraint">
-      <enum>QLayout::SetMinAndMaxSize</enum>
-     </property>
      <item>
       <widget class="QGroupBox" name="groupBox">
        <property name="title">
         <string>Device</string>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetMinAndMaxSize</enum>
-        </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0">
           <item>
@@ -128,7 +122,7 @@
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
-         <widget class="QListView" name="listView_device_opts">
+         <widget class="QTableView" name="tableView_device_opts">
           <property name="enabled">
            <bool>false</bool>
           </property>

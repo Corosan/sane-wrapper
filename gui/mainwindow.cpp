@@ -1,35 +1,32 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QApplication>
 #include <QMessageBox>
+#include <QComboBox>
+
+#include <memory>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow) {
     ui->setupUi(this);
 
-//    ui->comboBox_devices->setModel(&m_scanDeviceModel);
-//    ui->listView_device_opts->setModel(&m_scanDeviceOptModel);
-
     m_scanThread.setObjectName("scan_thread");
 
-    auto scanWorker = new ScanWorker;
-    scanWorker->moveToThread(&m_scanThread);
-    connect(&m_scanThread, &QThread::finished, scanWorker, &QObject::deleteLater);
-    connect(scanWorker, &ScanWorker::errorHappened, this, &MainWindow::scanErrorHappened);
-    connect(this, &MainWindow::getScanDeviceInfos, scanWorker, &ScanWorker::getDeviceInfos);
-    connect(scanWorker, &ScanWorker::gotDeviceInfos, this, &MainWindow::gotScanDeviceInfos);
+    m_scanWorker = new ScanWorker;
+    m_scanWorker->moveToThread(&m_scanThread);
+    connect(&m_scanThread, &QThread::finished, m_scanWorker, &QObject::deleteLater);
+    connect(m_scanWorker, &ScanWorker::errorHappened, this, &MainWindow::scanError);
 
-    auto deviceListModel = new DeviceListModel(*scanWorker, this);
+    auto deviceListModel = new DeviceListModel(*m_scanWorker, this);
     ui->comboBox_devices->setModel(deviceListModel);
     connect(deviceListModel, &DeviceListModel::modelReset, this, &MainWindow::deviceInfoModelReset);
+    connect(deviceListModel, &DeviceListModel::updateFinished, this, &MainWindow::deviceInfoUpdateFinished);
 
-//    connect(this, &MainWindow::getScanDeviceInfos, m_scanWorker, &ScanWorker::getDeviceInfos);
-//    connect(this, &MainWindow::openScanDevice, m_scanWorker, &ScanWorker::openDevice);
-//    connect(m_scanWorker, &ScanWorker::deviceInfosGot, this, &MainWindow::scanDeviceInfosGot);
-//    connect(m_scanWorker, &ScanWorker::deviceOptionsGot, this, &MainWindow::scanDeviceOptionsGot);
-//    connect(this, &Controller::operate, worker, &Worker::doWork);
-//    connect(worker, &Worker::resultReady, this, &Controller::handleResults);
+    auto oldDelegate = ui->tableView_device_opts->itemDelegate();
+    ui->tableView_device_opts->setItemDelegate(new OptionItemDelegate(this));
+    delete oldDelegate;
 
     m_scanThread.start();
 }
@@ -43,58 +40,29 @@ MainWindow::~MainWindow() {
 
 void MainWindow::on_btnReloadDevs_clicked() {
     ui->btnReloadDevs->setEnabled(false);
-    ui->listView_device_opts->setEnabled(false);
-    //auto i = ui->comboBox_devices->currentIndex();
-    //m_scanDeviceModel.set({});
-    // Though a model connected to the combo box becomes 0-sized and the combo box's current index
-    // becomes -1, a slot, connected to it is not invoked on changing the index to -1. Suppose this
-    // value is considered some special value which is not notified about.
-    //on_comboBox_devices_currentIndexChanged(-1);
-    //emit getScanDeviceInfos();
-    //static_cast<DeviceListModel*>(ui->comboBox_devices->model())->update();
-    emit getScanDeviceInfos();
+    ui->tableView_device_opts->setEnabled(false);
+    static_cast<DeviceListModel*>(ui->comboBox_devices->model())->update();
 }
 
-void MainWindow::gotScanDeviceInfos(vg_sane::device_infos_t) {
+void MainWindow::deviceInfoUpdateFinished(bool res) {
     ui->btnReloadDevs->setEnabled(true);
-    ui->listView_device_opts->setEnabled(true);
 }
 
-void MainWindow::scanErrorHappened(QString msg) {
-    ui->btnReloadDevs->setEnabled(true);
-    ui->listView_device_opts->setEnabled(true);
-
-    QMessageBox::critical(this, this->windowTitle(), msg);
+void MainWindow::scanError(std::string s) {
+    QMessageBox::critical(this, this->windowTitle() + " - error", QString::fromLocal8Bit(s.c_str()));
 }
 
 void MainWindow::deviceInfoModelReset() {
     auto m = static_cast<DeviceListModel*>(ui->comboBox_devices->model());
-    if (m->rowCount(QModelIndex()) == 0) {
-        auto i = ui->comboBox_devices->currentIndex();
-        ui->comboBox_devices->setCurrentIndex(-1);
-        qDebug() << "current index" << i << ", " << ui->comboBox_devices->currentIndex();
-    }
-//    qDebug() << "model reset, size" << m->rowCount(QModelIndex());
-//    ui->listView_device_opts->setEnabled(true);
-//    ui->btnReloadDevs->setEnabled(true);
+    if (m->rowCount(QModelIndex()) == 0)
+        // zero-sized model should cause combobox's index to reset to -1 and corresponding [indexChanged]
+        // signal to be called... but it isn't. Let's call it directly
+        on_comboBox_devices_currentIndexChanged(-1);
+    else
+        ui->tableView_device_opts->setEnabled(true);
 }
 
-/*
-void MainWindow::scanDeviceInfosGot(vg_sane::device_infos_t device_infos) {
-    if (! device_infos.empty()) {
-        ui->listView_device_opts->setEnabled(true);
-        m_scanDeviceModel.set(device_infos);
-        ui->comboBox_devices->setCurrentIndex(0);
-    }
-    ui->btnReloadDevs->setEnabled(true);
-}
-
-void MainWindow::scanDeviceOptionsGot(vg_sane::device_opts_t device_opts) {
-
-}
-*/
 void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
-    qDebug() << "current index called" << index;
     if (index == -1) {
         ui->label_dev_model->clear();
         ui->label_dev_type->clear();
@@ -104,31 +72,66 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
         ui->label_dev_model->setText(m->data(m->index(index), DeviceListModel::DeviceModelRole).toString());
         ui->label_dev_type->setText(m->data(m->index(index), DeviceListModel::DeviceTypeRole).toString());
         ui->label_dev_vendor->setText(m->data(m->index(index), DeviceListModel::DeviceVendorRole).toString());
-//        emit openScanDevice(m_scanDeviceModel.get(index)->name);
+
+        auto oldModel = ui->tableView_device_opts->model();
+        auto deviceOptionModel = new DeviceOptionModel(
+            *m_scanWorker, m->data(m->index(index), Qt::DisplayRole).toString(), this);
+        ui->tableView_device_opts->setModel(deviceOptionModel);
+        delete oldModel;
+
+        connect(deviceOptionModel, &DeviceOptionModel::deviceOptionsUpdated,
+            ui->tableView_device_opts, &QTableView::resizeColumnsToContents);
     }
 }
+
+QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+    const QModelIndex &index) const {
+    m_editingRow = index.row();
+
+    if (auto c = index.data(DeviceOptionModel::ConstraintRole); c.isValid()) {
+        if (static_cast<QMetaType::Type>(c.type()) == QMetaType::QStringList) {
+            // Handle string list constraints
+            auto res = std::make_unique<QComboBox>(parent);
+            res->setEditable(true);
+            res->addItems(c.toStringList());
+            return res.release();
+        }
+    }
+    return Base_t::createEditor(parent, option, index);
+}
+
+void OptionItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const {
+    if (auto p = dynamic_cast<QComboBox*>(editor))
+        p->setCurrentText(index.data(Qt::EditRole).toString());
+    else
+        Base_t::setEditorData(editor, index);
+}
+
 /*
-void MainWindow::DeviceModel::set(vg_sane::device_infos_t val) {
-    beginResetModel();
-    m_deviceInfos = val;
-    endResetModel();
+void OptionItemDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const {
+
 }
+*/
+/*
+void OptionItemDelegate::paint(QPainter *painter,
+    const QStyleOptionViewItem &option, const QModelIndex &index) const {
 
-QVariant MainWindow::DeviceModel::data(const QModelIndex &index, int role) const {
-    if (index == QModelIndex() || index.parent() != QModelIndex() || role != Qt::DisplayRole)
-        return {};
+    auto o = option;
+    o.features = QStyleOptionViewItem::HasCheckIndicator | QStyleOptionViewItem::HasDecoration;
+    o.showDecorationSelected = true;
+    o.checkState = Qt::Checked;
+    QStyledItemDelegate::paint(painter, o, index);
 
-    return m_deviceInfos[index.row()]->name;
-}
+    auto opt = option;
+    initStyleOption(&opt, index);
 
-QVariant MainWindow::OptionModel::data(const QModelIndex &index, int role) const {
-    if (index == QModelIndex() || index.parent() != QModelIndex() || role != Qt::DisplayRole)
-        return {};
-}
+    if (index.parent() == QModelIndex() && index.column() == 1) {
 
-void MainWindow::OptionModel::set(vg_sane::device_opts_t val) {
-    beginResetModel();
-    m_deviceOptions = val;
-    endResetModel();
+    }
+
+    auto* widget = option.widget;
+    auto* style = widget->style();
+    style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, widget);
+
 }
 */
