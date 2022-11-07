@@ -1,12 +1,14 @@
 #include "scanworker.h"
 
 #include <exception>
+#include <numeric>
 
 ScanWorker::ScanWorker()
     : m_saneLib(vg_sane::lib::instance()) {
     qRegisterMetaType<vg_sane::device_infos_t>();
     qRegisterMetaType<vg_sane::device_opts_t>();
     qRegisterMetaType<std::string>();
+    qRegisterMetaType<string_data_constraint>();
 }
 
 void ScanWorker::getDeviceInfos() {
@@ -156,17 +158,26 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
     case ColumnValue:
         //auto val = m_worker.getOptionValue(descr.first);
         switch (descr.second->type) {
+        case SANE_TYPE_INT:
+            if (role == Qt::DisplayRole || role == Qt::EditRole) {
+                auto val = std::get<2>(m_worker.getOptionValue(descr.first));
+                if (val.size() == 1)
+                    return *val.data();
+                auto str = std::accumulate(val.begin(), val.end(), std::string{}, [](const auto& l, const auto& r){
+                        return l + (l.empty() ? "" : ", ") + std::to_string(r);
+                    });
+                return QString::fromLatin1(str.c_str());
+            }
+            break;
         case SANE_TYPE_STRING:
-            if (role == ConstraintRole && descr.second->constraint_type == SANE_CONSTRAINT_STRING_LIST) {
-                // TODO: can be cached also
-                //dev_opt_string_constraint_t res;
-                //for (auto p = descr.second->constraint.string_list; *p != nullptr; ++p)
-                //    res.push_back(QString::fromLocal8Bit(*p));
-                //return QVariant::fromValue(std::move(res));
-                QStringList lst;
-                for (auto p = descr.second->constraint.string_list; *p != nullptr; ++p)
-                    lst.push_back(QString::fromLocal8Bit(*p));
-                return lst;
+            if (role == ConstraintRole) {
+                string_data_constraint c{static_cast<std::size_t>(descr.second->size) - 1};
+                if (descr.second->constraint_type == SANE_CONSTRAINT_STRING_LIST) {
+                    // TODO: can be cached also
+                    for (auto p = descr.second->constraint.string_list; *p != nullptr; ++p)
+                        c.m_values.push_back(QString::fromLocal8Bit(*p));
+                }
+                return QVariant::fromValue(std::move(c));
             }
             if (role == Qt::DisplayRole || role == Qt::EditRole)
                 return QString::fromLocal8Bit(std::get<3>(m_worker.getOptionValue(descr.first)));

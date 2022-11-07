@@ -20,9 +20,17 @@ namespace vg_sane {
     using device_opts_t = std::ranges::subrange<device::option_iterator>;
 }
 
+// Additional types for communicating between backend worker and GUI model classes
 Q_DECLARE_METATYPE(vg_sane::device_infos_t)
 Q_DECLARE_METATYPE(vg_sane::device_opts_t)
 Q_DECLARE_METATYPE(std::string)
+
+struct string_data_constraint {
+    std::size_t m_maxLength;
+    QStringList m_values;
+};
+
+Q_DECLARE_METATYPE(string_data_constraint)
 
 /**
  * @brief scanner bounary communication object working in separate thread
@@ -107,8 +115,6 @@ signals:
     void updateFinished(bool);
 };
 
-//using dev_opt_string_constraint_t = QVector<QString>;
-//Q_DECLARE_METATYPE(dev_opt_string_constraint_t)
 
 class DeviceOptionModel : public QAbstractTableModel {
     Q_OBJECT

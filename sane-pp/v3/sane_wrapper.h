@@ -306,22 +306,30 @@ inline device lib::open_device(const char* name) {
         throw error("already having device \"" + sname + "\" somewhere in the program");
 #ifdef SANE_PP_STUB
     if (std::strcmp(name, "dev 1") == 0) {
-        h = {std::make_shared<details::stub_option>("name1", "title 1", "descr 1", SANE_TYPE_INT, SANE_CAP_INACTIVE),
-            std::make_shared<details::stub_option>("name2", "title 2", "descr 2", SANE_TYPE_BOOL, SANE_CAP_SOFT_SELECT),
-            std::make_shared<details::stub_option>("name3", "title 33", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT),
-            std::make_shared<details::stub_option>("name 4", "title 4", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT)};
+        h = {std::make_shared<details::stub_option>("name1", "title 1", "descr 1", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT),
+             std::make_shared<details::stub_option>("name2", "title 2", "descr 2", SANE_TYPE_BOOL, SANE_CAP_SOFT_SELECT),
+             std::make_shared<details::stub_option>("name3", "title 33", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT),
+             std::make_shared<details::stub_option>("name 4", "title 4", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT)};
         std::string_view s = "test string";
         h[0]->m_d.unit = SANE_UNIT_MM;
+        h[0]->m_d.size = sizeof(::SANE_Word);   // one item only
+        *reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) = 5;
         h[1]->m_d.size = sizeof(::SANE_Bool);
         h[1]->m_d.unit = SANE_UNIT_DPI;
-        h[2]->m_d.size = 128;
+        h[2]->m_d.size = 16;
         h[2]->m_data.assign(s.begin(), s.end());
         h[3]->m_d.size = 128;
         h[3]->m_data.assign(s.begin(), s.end());
         h[3]->set_str_constraint({"val 1", "val 2", "val 3"});
-    } else
+    } else {
         h = {std::make_shared<details::stub_option>("name1b", "title 1 b", "descr 1b", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT),
-            std::make_shared<details::stub_option>("name 2b", "title 2b", "descr 2bb", SANE_TYPE_BOOL, SANE_CAP_SOFT_SELECT)};
+             std::make_shared<details::stub_option>("name 2b", "title 2b", "descr 2bb", SANE_TYPE_BOOL, SANE_CAP_SOFT_SELECT),
+             std::make_shared<details::stub_option>("name 3", "title 2b", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT)};
+        h[0]->m_d.size = 3 * sizeof(::SANE_Word);
+        *reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) = 5;
+        *(reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) + 1) = 6;
+        *(reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) + 2) = 8;
+    }
 #else
     details::checked_call([&name](){ return std::string{"unable to get device \""} + name + '"'; },
         &::sane_open, name, &h);

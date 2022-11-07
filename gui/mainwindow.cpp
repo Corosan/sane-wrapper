@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <QComboBox>
+#include <QLineEdit>
 
 #include <memory>
 
@@ -89,14 +90,21 @@ QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionVie
     m_editingRow = index.row();
 
     if (auto c = index.data(DeviceOptionModel::ConstraintRole); c.isValid()) {
-        if (static_cast<QMetaType::Type>(c.type()) == QMetaType::QStringList) {
-            // Handle string list constraints
-            auto res = std::make_unique<QComboBox>(parent);
-            res->setEditable(true);
-            res->addItems(c.toStringList());
-            return res.release();
+        if (c.canConvert<string_data_constraint>()) {
+            const auto& str_c = c.value<string_data_constraint>();
+            if (str_c.m_values.empty()) {
+                auto editor = std::make_unique<QLineEdit>(parent);
+                editor->setMaxLength(str_c.m_maxLength);
+                return editor.release();
+            }
+            auto editor = std::make_unique<QComboBox>(parent);
+            editor->setEditable(true);
+            editor->addItems(str_c.m_values);
+            editor->lineEdit()->setMaxLength(str_c.m_maxLength);
+            return editor.release();
         }
     }
+
     return Base_t::createEditor(parent, option, index);
 }
 
