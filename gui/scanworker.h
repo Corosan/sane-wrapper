@@ -30,7 +30,19 @@ struct string_data_constraint {
     QStringList m_values;
 };
 
+struct double_data_constraint {
+    double m_min;
+    double m_max;
+    double m_step;
+};
+
+using integer_data_constraint = const ::SANE_Range*;
+using integer_data_list_constraint = const ::SANE_Word*;
+
 Q_DECLARE_METATYPE(string_data_constraint)
+Q_DECLARE_METATYPE(integer_data_constraint)
+Q_DECLARE_METATYPE(integer_data_list_constraint)
+Q_DECLARE_METATYPE(double_data_constraint)
 
 /**
  * @brief scanner bounary communication object working in separate thread
@@ -132,6 +144,7 @@ public:
     };
 
     enum DeviceInfoRole {
+        // This role returns QVariant with optionally one of XXX_constraint types declared above
         ConstraintRole = Qt::UserRole
     };
 

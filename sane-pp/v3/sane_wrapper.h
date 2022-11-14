@@ -58,6 +58,8 @@ struct stub_option {
     std::vector<char> m_data;
     std::vector<std::string> m_str_constraint;
     std::vector<const char*> m_str_raw_constraint;
+    std::vector<::SANE_Word> m_int_list_constraint;
+    ::SANE_Range m_int_range;
 
     stub_option(std::string name, std::string title, std::string descr, ::SANE_Value_Type type, ::SANE_Int cap)
         : m_d{}
@@ -83,6 +85,23 @@ struct stub_option {
         }
         m_str_raw_constraint.push_back(nullptr);
         m_d.constraint.string_list = m_str_raw_constraint.data();
+        return *this;
+    }
+
+    stub_option& set_int_range_constraint(const ::SANE_Range& range) {
+        m_int_range = range;
+        m_d.constraint_type = SANE_CONSTRAINT_RANGE;
+        m_d.constraint.range = &m_int_range;
+        return *this;
+    }
+
+    stub_option& set_int_list_constraint(std::vector<int> nums) {
+        m_int_list_constraint.clear();
+        m_int_list_constraint.push_back(static_cast<::SANE_Word>(nums.size()));
+        for (int n : nums)
+            m_int_list_constraint.push_back(static_cast<::SANE_Word>(n));
+        m_d.constraint_type = SANE_CONSTRAINT_WORD_LIST;
+        m_d.constraint.word_list = m_int_list_constraint.data();
         return *this;
     }
 };
@@ -313,22 +332,36 @@ inline device lib::open_device(const char* name) {
         std::string_view s = "test string";
         h[0]->m_d.unit = SANE_UNIT_MM;
         h[0]->m_d.size = sizeof(::SANE_Word);   // one item only
-        *reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) = 5;
+        *reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) = 14;
+        //h[0]->set_int_range_constraint({12, 20, 2});
+        h[0]->set_int_list_constraint({14, 20, 100});
         h[1]->m_d.size = sizeof(::SANE_Bool);
         h[1]->m_d.unit = SANE_UNIT_DPI;
         h[2]->m_d.size = 16;
-        h[2]->m_data.assign(s.begin(), s.end());
+        const char s1[] = "test string 1";
+        h[2]->m_data.assign(std::begin(s1), std::end(s1));
         h[3]->m_d.size = 128;
-        h[3]->m_data.assign(s.begin(), s.end());
+        const char s2[] = "test string 2";
+        h[3]->m_data.assign(std::begin(s2), std::end(s2));
         h[3]->set_str_constraint({"val 1", "val 2", "val 3"});
     } else {
         h = {std::make_shared<details::stub_option>("name1b", "title 1 b", "descr 1b", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT),
              std::make_shared<details::stub_option>("name 2b", "title 2b", "descr 2bb", SANE_TYPE_BOOL, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("name 3", "title 2b", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT)};
+             std::make_shared<details::stub_option>("name 3", "title 2b", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT),
+             std::make_shared<details::stub_option>("fixed list", "title 2b", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT)};
         h[0]->m_d.size = 3 * sizeof(::SANE_Word);
+        h[2]->m_d.size = sizeof(::SANE_Fixed);
+        h[3]->m_d.size = 4 * sizeof(::SANE_Fixed);
         *reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) = 5;
         *(reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) + 1) = 6;
         *(reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) + 2) = 8;
+        h[0]->set_int_range_constraint({2, 20, 1});
+        *reinterpret_cast<::SANE_Fixed*>(h[2]->m_data.data()) = 1 << SANE_FIXED_SCALE_SHIFT;
+        h[2]->set_int_range_constraint({-1 << SANE_FIXED_SCALE_SHIFT, 10 << SANE_FIXED_SCALE_SHIFT, 1 << (SANE_FIXED_SCALE_SHIFT - 1)});
+        *reinterpret_cast<::SANE_Fixed*>(h[3]->m_data.data()) = 1 << SANE_FIXED_SCALE_SHIFT;
+        *(reinterpret_cast<::SANE_Fixed*>(h[3]->m_data.data()) + 1) = 2 << SANE_FIXED_SCALE_SHIFT;
+        *(reinterpret_cast<::SANE_Fixed*>(h[3]->m_data.data()) + 2) = 5 << (SANE_FIXED_SCALE_SHIFT - 1);
+        *(reinterpret_cast<::SANE_Fixed*>(h[3]->m_data.data()) + 3) = 4 << SANE_FIXED_SCALE_SHIFT;
     }
 #else
     details::checked_call([&name](){ return std::string{"unable to get device \""} + name + '"'; },
@@ -431,6 +464,8 @@ inline device::set_opt_result_t device::set_option(int pos, opt_value_t val) {
 #ifdef SANE_PP_STUB
     m_handle[static_cast<std::size_t>(pos) - 1]->m_data.assign(
         static_cast<char*>(data), static_cast<char*>(data) + descr->size);
+    if (m_name != "dev 1" && pos == 1)
+        *(reinterpret_cast<::SANE_Word*>(m_handle[0]->m_data.data()) + 2) = 2;
     if (std::memcmp(static_cast<char*>(data), "test", 5) == 0) {
         m_handle.erase(m_handle.begin());
         flags |= SANE_INFO_RELOAD_OPTIONS;

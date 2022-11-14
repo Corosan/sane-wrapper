@@ -4,8 +4,12 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <QComboBox>
+#include <QSpinBox>
+#include <QDoubleSpinBox>
 #include <QLineEdit>
+#include <QIntValidator>
 
+#include <cmath>
 #include <memory>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -101,6 +105,40 @@ QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionVie
             editor->setEditable(true);
             editor->addItems(str_c.m_values);
             editor->lineEdit()->setMaxLength(str_c.m_maxLength);
+            return editor.release();
+        }
+        else if (c.canConvert<integer_data_constraint>()) {
+            auto editor = std::unique_ptr<QWidget>(Base_t::createEditor(parent, option, index));
+            if (auto spinBox = dynamic_cast<QSpinBox*>(editor.get())) {
+                auto int_c = c.value<integer_data_constraint>();
+                spinBox->setMinimum(int_c->min);
+                spinBox->setMaximum(int_c->max);
+                if (int_c->quant != 0)
+                    spinBox->setSingleStep(int_c->quant);
+            }
+            return editor.release();
+        }
+        else if (c.canConvert<integer_data_list_constraint>()) {
+            auto editor = std::make_unique<QComboBox>(parent);
+            editor->setEditable(true);
+            auto int_lst = c.value<integer_data_list_constraint>();
+            auto count = int_lst[0];
+            for (auto p = int_lst + 1; count > 0; --count, ++p)
+                editor->addItem(QString::number(*p));
+            editor->setValidator(new QIntValidator(
+                std::numeric_limits<::SANE_Int>::min(), std::numeric_limits<::SANE_Int>::max(), editor.get()));
+            return editor.release();
+        }
+        else if (c.canConvert<double_data_constraint>()) {
+            auto editor = std::unique_ptr<QWidget>(Base_t::createEditor(parent, option, index));
+            if (auto spinBox = dynamic_cast<QDoubleSpinBox*>(editor.get())) {
+                auto double_c = c.value<double_data_constraint>();
+                spinBox->setDecimals(5);
+                spinBox->setMinimum(double_c.m_min);
+                spinBox->setMaximum(double_c.m_max);
+                if (std::fabs(double_c.m_step) >= std::numeric_limits<double>::epsilon())
+                    spinBox->setSingleStep(double_c.m_step);
+            }
             return editor.release();
         }
     }

@@ -4,42 +4,42 @@
 <context>
     <name>DeviceOptionModel</name>
     <message>
-        <location filename="scanworker.cpp" line="200"/>
+        <location filename="scanworker.cpp" line="240"/>
         <source>px</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="201"/>
+        <location filename="scanworker.cpp" line="241"/>
         <source>bit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="202"/>
+        <location filename="scanworker.cpp" line="242"/>
         <source>mm</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="203"/>
+        <location filename="scanworker.cpp" line="243"/>
         <source>dpi</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="205"/>
+        <location filename="scanworker.cpp" line="245"/>
         <source>us</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="153"/>
+        <location filename="scanworker.h" line="166"/>
         <source>Property</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="154"/>
+        <location filename="scanworker.h" line="167"/>
         <source>Value</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="155"/>
+        <location filename="scanworker.h" line="168"/>
         <source>Unit</source>
         <translation type="unfinished"></translation>
     </message>
