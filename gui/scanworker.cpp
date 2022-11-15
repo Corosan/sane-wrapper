@@ -14,6 +14,7 @@ ScanWorker::ScanWorker()
     qRegisterMetaType<integer_data_constraint>();
     qRegisterMetaType<integer_data_list_constraint>();
     qRegisterMetaType<double_data_constraint>();
+    qRegisterMetaType<double_data_list_constraint>();
 }
 
 void ScanWorker::getDeviceInfos() {
@@ -168,12 +169,19 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
             // we have a time.
             if (role == ConstraintRole) {
                 if (descr.second->constraint_type == 0)
-                    return QVariant::fromValue(double_data_constraint{-32768, 32767.9999, .0});
+                    return QVariant::fromValue(double_data_constraint{-32768., 32767.9999, .0});
                 else if (descr.second->constraint_type == SANE_CONSTRAINT_RANGE)
                     return QVariant::fromValue(double_data_constraint{
                         static_cast<double>(descr.second->constraint.range->min) / (1 << SANE_FIXED_SCALE_SHIFT),
                         static_cast<double>(descr.second->constraint.range->max) / (1 << SANE_FIXED_SCALE_SHIFT),
                         static_cast<double>(descr.second->constraint.range->quant) / (1 << SANE_FIXED_SCALE_SHIFT)});
+                else if (descr.second->constraint_type == SANE_CONSTRAINT_WORD_LIST) {
+                    auto src = descr.second->constraint.word_list + 1;
+                    QVector<double> dest;
+                    for (auto count = *(src - 1); count > 0; --count, ++src)
+                        dest.push_back(static_cast<double>(*src) / (1 << SANE_FIXED_SCALE_SHIFT));
+                    return QVariant::fromValue(double_data_list_constraint{dest, -32768., 32767.9999});
+                }
             }
             else if (role == Qt::DisplayRole || role == Qt::EditRole) {
                 // One fixed will be editable as [double] but more than one - as a text - list of numbers
@@ -185,7 +193,7 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                     return role == Qt::DisplayRole ? QVariant(QLocale().toString(dval)) : QVariant(dval);
                 }
                 return std::accumulate(val.begin(), val.end(), QString{}, [](const auto& l, const auto& r){
-                        return l + (l.isEmpty() ? "" : ", ") +
+                        return l + (l.isEmpty() ? "" : "; ") +
                             QLocale().toString(static_cast<double>(r) / (1 << SANE_FIXED_SCALE_SHIFT));
                     });
             }
@@ -202,10 +210,8 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                 // separated by comma so far for simplicity. Still didn't decide what to do with constraints
                 // for list of integers
                 auto val = std::get<2>(m_worker.getOptionValue(descr.first));
-                if (val.size() == 1)
-                    return *val.data();
                 return std::accumulate(val.begin(), val.end(), QString{}, [](const auto& l, const auto& r){
-                        return l + (l.isEmpty() ? "" : ", ") + QLocale().toString(r);
+                        return l + (l.isEmpty() ? "" : "; ") + QLocale().toString(r);
                     });
             }
             break;
@@ -262,8 +268,21 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
         if (role == Qt::EditRole) {
             if (descr.second->size == sizeof(::SANE_Fixed)) {
                 res = true;
-                auto val = static_cast<::SANE_Fixed>(value.toDouble() * (1 << SANE_FIXED_SCALE_SHIFT));
+                auto val = static_cast<::SANE_Fixed>(QLocale().toDouble(value.toString()) * (1 << SANE_FIXED_SCALE_SHIFT));
                 opRes = m_worker.setOptionValue(descr.first, vg_sane::opt_value_t{std::span{&val, 1}});
+            }
+            else {
+                std::vector<::SANE_Fixed> vals;
+                for (const auto& s : value.toString().split(";", Qt::SkipEmptyParts))
+                    vals.push_back(static_cast<::SANE_Fixed>(QLocale().toDouble(s.trimmed()) * (1 << SANE_FIXED_SCALE_SHIFT)));
+                vals.resize(descr.second->size / sizeof(::SANE_Fixed),
+                    descr.second->constraint_type == SANE_CONSTRAINT_RANGE ?
+                        descr.second->constraint.range->min :
+                    (descr.second->constraint_type == SANE_CONSTRAINT_WORD_LIST
+                     && descr.second->constraint.word_list[0] > 0) ?
+                        descr.second->constraint.word_list[1] : 0);
+                res = true;
+                opRes = m_worker.setOptionValue(descr.first, vg_sane::opt_value_t{std::span{vals}});
             }
         }
         break;
@@ -271,13 +290,13 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
         if (role == Qt::EditRole) {
             if (descr.second->size == sizeof(::SANE_Word)) {
                 res = true;
-                auto val = static_cast<::SANE_Word>(value.toInt());
+                auto val = static_cast<::SANE_Word>(QLocale().toInt(value.toString()));
                 opRes = m_worker.setOptionValue(descr.first, vg_sane::opt_value_t{std::span{&val, 1}});
             }
             else {
                 std::vector<::SANE_Word> vals;
-                for (const auto& s : value.toString().split(",", Qt::SkipEmptyParts))
-                    vals.push_back(s.trimmed().toInt());
+                for (const auto& s : value.toString().split(";", Qt::SkipEmptyParts))
+                    vals.push_back(QLocale().toInt(s.trimmed()));
                 vals.resize(descr.second->size / sizeof(::SANE_Word),
                     descr.second->constraint_type == SANE_CONSTRAINT_RANGE ?
                         descr.second->constraint.range->min :
@@ -305,6 +324,8 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
         break;
     }
 
+    // Is some special processing for "inexact value" case needed? Or Qt anyway reloads data into
+    // a view from a model after editing...?
     if (opRes.test(static_cast<std::size_t>(vg_sane::device::set_opt_result_flags::reload_opts))) {
         m_updateInProgress = true;
         beginResetModel();

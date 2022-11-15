@@ -4,44 +4,44 @@
 <context>
     <name>DeviceOptionModel</name>
     <message>
-        <location filename="scanworker.cpp" line="240"/>
+        <location filename="scanworker.cpp" line="246"/>
         <source>px</source>
-        <translation type="unfinished"></translation>
+        <translation>пикс</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="241"/>
+        <location filename="scanworker.cpp" line="247"/>
         <source>bit</source>
-        <translation type="unfinished"></translation>
+        <translation>бит</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="242"/>
+        <location filename="scanworker.cpp" line="248"/>
         <source>mm</source>
-        <translation type="unfinished"></translation>
+        <translation>мм</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="243"/>
+        <location filename="scanworker.cpp" line="249"/>
         <source>dpi</source>
-        <translation type="unfinished"></translation>
+        <translation>тчк/дюйм</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="245"/>
+        <location filename="scanworker.cpp" line="251"/>
         <source>us</source>
-        <translation type="unfinished"></translation>
+        <translation>мкс</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="166"/>
+        <location filename="scanworker.h" line="174"/>
         <source>Property</source>
-        <translation type="unfinished"></translation>
+        <translation>Свойство</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="167"/>
+        <location filename="scanworker.h" line="175"/>
         <source>Value</source>
-        <translation type="unfinished"></translation>
+        <translation>Значение</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="168"/>
+        <location filename="scanworker.h" line="176"/>
         <source>Unit</source>
-        <translation type="unfinished"></translation>
+        <translation>Ед.</translation>
     </message>
 </context>
 <context>
@@ -49,32 +49,32 @@
     <message>
         <location filename="mainwindow.ui" line="14"/>
         <source>Scanner</source>
-        <translation type="unfinished"></translation>
+        <translation>Сканер</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="40"/>
         <source>Device</source>
-        <translation type="unfinished"></translation>
+        <translation>Устройство</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="68"/>
         <source>Vendor:</source>
-        <translation type="unfinished"></translation>
+        <translation>Производитель:</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="85"/>
         <source>Model:</source>
-        <translation type="unfinished"></translation>
+        <translation>Модель:</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="102"/>
         <source>Type:</source>
-        <translation type="unfinished"></translation>
+        <translation>Тип:</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="121"/>
         <source>Parameters</source>
-        <translation type="unfinished"></translation>
+        <translation>Параметры:</translation>
     </message>
 </context>
 </TS>

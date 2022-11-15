@@ -1,6 +1,10 @@
 // vi: textwidth=100
 #pragma once
 
+#ifdef SANE_PP_STUB
+#include "sane_wrapper_stub.h"
+#endif
+
 #include <memory>
 #include <string>
 #include <utility>
@@ -11,14 +15,6 @@
 #include <variant>
 #include <functional>
 #include <ranges>
-
-#ifdef SANE_PP_STUB
-#include <cstring>
-#include <string_view>
-#include <thread>
-#include <chrono>
-#include <initializer_list>
-#endif
 
 #include "sane_wrapper_utils.h"
 
@@ -45,70 +41,6 @@ class device;
  */
 using opt_value_t = std::variant<
     std::monostate, std::reference_wrapper<::SANE_Word>, std::span<::SANE_Word>, ::SANE_String>;
-
-#ifdef SANE_PP_STUB
-
-namespace details {
-
-struct stub_option {
-    ::SANE_Option_Descriptor m_d;
-    std::string m_name;
-    std::string m_title;
-    std::string m_descr;
-    std::vector<char> m_data;
-    std::vector<std::string> m_str_constraint;
-    std::vector<const char*> m_str_raw_constraint;
-    std::vector<::SANE_Word> m_int_list_constraint;
-    ::SANE_Range m_int_range;
-
-    stub_option(std::string name, std::string title, std::string descr, ::SANE_Value_Type type, ::SANE_Int cap)
-        : m_d{}
-        , m_name(std::move(name))
-        , m_title(std::move(title))
-        , m_descr(std::move(descr))
-        , m_data(64) {
-        m_d.name = m_name.c_str();
-        m_d.title = m_title.c_str();
-        m_d.desc = m_descr.c_str();
-        m_d.type = type;
-        m_d.cap = cap;
-    }
-
-    stub_option(const stub_option&) = delete;
-    stub_option& operator=(const stub_option&) = delete;
-
-    stub_option& set_str_constraint(std::vector<std::string> c) {
-        m_d.constraint_type = SANE_CONSTRAINT_STRING_LIST;
-        m_str_constraint = std::move(c);
-        for (auto& s : m_str_constraint) {
-            m_str_raw_constraint.push_back(s.c_str());
-        }
-        m_str_raw_constraint.push_back(nullptr);
-        m_d.constraint.string_list = m_str_raw_constraint.data();
-        return *this;
-    }
-
-    stub_option& set_int_range_constraint(const ::SANE_Range& range) {
-        m_int_range = range;
-        m_d.constraint_type = SANE_CONSTRAINT_RANGE;
-        m_d.constraint.range = &m_int_range;
-        return *this;
-    }
-
-    stub_option& set_int_list_constraint(std::vector<int> nums) {
-        m_int_list_constraint.clear();
-        m_int_list_constraint.push_back(static_cast<::SANE_Word>(nums.size()));
-        for (int n : nums)
-            m_int_list_constraint.push_back(static_cast<::SANE_Word>(n));
-        m_d.constraint_type = SANE_CONSTRAINT_WORD_LIST;
-        m_d.constraint.word_list = m_int_list_constraint.data();
-        return *this;
-    }
-};
-
-}
-
-#endif
 
 /**
  * Represents Sane library wrapper which is a singleton for the whole process. So the object can't
@@ -325,6 +257,17 @@ inline device lib::open_device(const char* name) {
         throw error("already having device \"" + sname + "\" somewhere in the program");
 #ifdef SANE_PP_STUB
     if (std::strcmp(name, "dev 1") == 0) {
+        h = {std::make_shared<details::stub_option>("n0", "int sample", "", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT),
+             std::make_shared<details::stub_option>("n1", "int list sample", "", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT, 3),
+             std::make_shared<details::stub_option>("n2", "fixed sample", "", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT),
+             std::make_shared<details::stub_option>("n3", "fixed list sample", "", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT, 3),
+             std::make_shared<details::stub_option>("n4", "str", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT, 32)};
+        h[0]->value<::SANE_Word>() = 2;
+        h[1]->values<::SANE_Word>() = {1, 2, 3};
+        h[2]->value<::SANE_Fixed>() = 1 << SANE_FIXED_SCALE_SHIFT;
+        h[3]->values<::SANE_Fixed>() = {1 << SANE_FIXED_SCALE_SHIFT, 2 << SANE_FIXED_SCALE_SHIFT, 5 << (SANE_FIXED_SCALE_SHIFT - 1)};
+        h[4]->str() = "test string";
+/*
         h = {std::make_shared<details::stub_option>("name1", "title 1", "descr 1", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT),
              std::make_shared<details::stub_option>("name2", "title 2", "descr 2", SANE_TYPE_BOOL, SANE_CAP_SOFT_SELECT),
              std::make_shared<details::stub_option>("name3", "title 33", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT),
@@ -332,7 +275,7 @@ inline device lib::open_device(const char* name) {
         std::string_view s = "test string";
         h[0]->m_d.unit = SANE_UNIT_MM;
         h[0]->m_d.size = sizeof(::SANE_Word);   // one item only
-        *reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) = 14;
+        h[0]->value<::SANE_Word>() = 14;
         //h[0]->set_int_range_constraint({12, 20, 2});
         h[0]->set_int_list_constraint({14, 20, 100});
         h[1]->m_d.size = sizeof(::SANE_Bool);
@@ -344,24 +287,28 @@ inline device lib::open_device(const char* name) {
         const char s2[] = "test string 2";
         h[3]->m_data.assign(std::begin(s2), std::end(s2));
         h[3]->set_str_constraint({"val 1", "val 2", "val 3"});
+*/
     } else {
+/*
         h = {std::make_shared<details::stub_option>("name1b", "title 1 b", "descr 1b", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT),
              std::make_shared<details::stub_option>("name 2b", "title 2b", "descr 2bb", SANE_TYPE_BOOL, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("name 3", "title 2b", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("fixed list", "title 2b", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT)};
+             std::make_shared<details::stub_option>("fixed_value", "fixed value", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT),
+             std::make_shared<details::stub_option>("fixed_list", "fixed list", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT)};
         h[0]->m_d.size = 3 * sizeof(::SANE_Word);
         h[2]->m_d.size = sizeof(::SANE_Fixed);
         h[3]->m_d.size = 4 * sizeof(::SANE_Fixed);
-        *reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) = 5;
-        *(reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) + 1) = 6;
-        *(reinterpret_cast<::SANE_Word*>(h[0]->m_data.data()) + 2) = 8;
+        h[0]->value<::SANE_Word>() = 5;
+        h[0]->value<::SANE_Word>(1) = 6;
+        h[0]->value<::SANE_Word>(2) = 8;
         h[0]->set_int_range_constraint({2, 20, 1});
-        *reinterpret_cast<::SANE_Fixed*>(h[2]->m_data.data()) = 1 << SANE_FIXED_SCALE_SHIFT;
-        h[2]->set_int_range_constraint({-1 << SANE_FIXED_SCALE_SHIFT, 10 << SANE_FIXED_SCALE_SHIFT, 1 << (SANE_FIXED_SCALE_SHIFT - 1)});
-        *reinterpret_cast<::SANE_Fixed*>(h[3]->m_data.data()) = 1 << SANE_FIXED_SCALE_SHIFT;
-        *(reinterpret_cast<::SANE_Fixed*>(h[3]->m_data.data()) + 1) = 2 << SANE_FIXED_SCALE_SHIFT;
-        *(reinterpret_cast<::SANE_Fixed*>(h[3]->m_data.data()) + 2) = 5 << (SANE_FIXED_SCALE_SHIFT - 1);
-        *(reinterpret_cast<::SANE_Fixed*>(h[3]->m_data.data()) + 3) = 4 << SANE_FIXED_SCALE_SHIFT;
+        h[2]->value<::SANE_Fixed>() = 1 << SANE_FIXED_SCALE_SHIFT;
+        //h[2]->set_int_range_constraint({-1 << SANE_FIXED_SCALE_SHIFT, 10 << SANE_FIXED_SCALE_SHIFT, 1 << (SANE_FIXED_SCALE_SHIFT - 1)});
+        h[2]->set_int_list_constraint({1 << SANE_FIXED_SCALE_SHIFT, 2 << SANE_FIXED_SCALE_SHIFT, 5 << (SANE_FIXED_SCALE_SHIFT - 1)});
+        h[3]->value<::SANE_Fixed>() = 1 << SANE_FIXED_SCALE_SHIFT;              // 1
+        h[3]->value<::SANE_Fixed>(1) = 2 << SANE_FIXED_SCALE_SHIFT;             // 2
+        h[3]->value<::SANE_Fixed>(2) = 5 << (SANE_FIXED_SCALE_SHIFT - 1);       // 2.5
+        h[3]->value<::SANE_Fixed>(3) = 4 << SANE_FIXED_SCALE_SHIFT;             // 4
+*/
     }
 #else
     details::checked_call([&name](){ return std::string{"unable to get device \""} + name + '"'; },

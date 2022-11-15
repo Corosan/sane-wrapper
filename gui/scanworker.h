@@ -4,6 +4,7 @@
 #include <QThread>
 #include <QString>
 #include <QStringList>
+#include <QVector>
 #include <QModelIndex>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
@@ -36,6 +37,12 @@ struct double_data_constraint {
     double m_step;
 };
 
+struct double_data_list_constraint {
+    QVector<double> m_values;
+    double m_min;
+    double m_max;
+};
+
 using integer_data_constraint = const ::SANE_Range*;
 using integer_data_list_constraint = const ::SANE_Word*;
 
@@ -43,6 +50,7 @@ Q_DECLARE_METATYPE(string_data_constraint)
 Q_DECLARE_METATYPE(integer_data_constraint)
 Q_DECLARE_METATYPE(integer_data_list_constraint)
 Q_DECLARE_METATYPE(double_data_constraint)
+Q_DECLARE_METATYPE(double_data_list_constraint)
 
 /**
  * @brief scanner bounary communication object working in separate thread

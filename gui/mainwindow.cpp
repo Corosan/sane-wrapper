@@ -8,6 +8,7 @@
 #include <QDoubleSpinBox>
 #include <QLineEdit>
 #include <QIntValidator>
+#include <QDoubleValidator>
 
 #include <cmath>
 #include <memory>
@@ -124,7 +125,7 @@ QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionVie
             auto int_lst = c.value<integer_data_list_constraint>();
             auto count = int_lst[0];
             for (auto p = int_lst + 1; count > 0; --count, ++p)
-                editor->addItem(QString::number(*p));
+                editor->addItem(QLocale().toString(*p));
             editor->setValidator(new QIntValidator(
                 std::numeric_limits<::SANE_Int>::min(), std::numeric_limits<::SANE_Int>::max(), editor.get()));
             return editor.release();
@@ -139,6 +140,16 @@ QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionVie
                 if (std::fabs(double_c.m_step) >= std::numeric_limits<double>::epsilon())
                     spinBox->setSingleStep(double_c.m_step);
             }
+            return editor.release();
+        }
+        else if (c.canConvert<double_data_list_constraint>()) {
+            auto editor = std::make_unique<QComboBox>(parent);
+            editor->setEditable(true);
+            auto double_c = c.value<double_data_list_constraint>();
+            for (auto v : double_c.m_values)
+                editor->addItem(QLocale().toString(v));
+            editor->setValidator(new QDoubleValidator(
+                double_c.m_min, double_c.m_max, /*decimals*/ 5, editor.get()));
             return editor.release();
         }
     }
