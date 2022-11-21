@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(sane-pp)
 
+cmake_policy(SET CMP0077 NEW)
 option(SANE_PP_STUB "do not invoke real sane library, provide some stub ops")
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE .)

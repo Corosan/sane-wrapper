@@ -278,8 +278,7 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                                 dest.push_back(static_cast<double>(*src) / (1 << SANE_FIXED_SCALE_SHIFT));
                             return QVariant::fromValue(double_data_list_constraint{dest, -32768., 32767.9999});
                         }
-                    }
-                    else if (role == Qt::DisplayRole || role == Qt::EditRole) {
+                    } else if (role == Qt::DisplayRole || role == Qt::EditRole) {
                         // One fixed will be editable as [double] but more than one - as a text - list of numbers
                         // separated by comma so far for simplicity. Still didn't decide what to do with constraints
                         // for list of fixeds
@@ -292,8 +291,7 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                                 return l + (l.isEmpty() ? "" : "; ") +
                                     QLocale().toString(static_cast<double>(r) / (1 << SANE_FIXED_SCALE_SHIFT));
                             });
-                    }
-                    else if (role == Qt::ToolTipRole) {
+                    } else if (role == Qt::ToolTipRole) {
                         if (descr.second->constraint_type == 0)
                             return tr("min value: -32768, max value: 32767.9999");
                         else if (descr.second->constraint_type == SANE_CONSTRAINT_RANGE)
@@ -311,8 +309,7 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                             return QVariant::fromValue(descr.second->constraint.range);
                         else if (descr.second->constraint_type == SANE_CONSTRAINT_WORD_LIST)
                             return QVariant::fromValue(descr.second->constraint.word_list);
-                    }
-                    else if (role == Qt::DisplayRole || role == Qt::EditRole) {
+                    } else if (role == Qt::DisplayRole || role == Qt::EditRole) {
                         // One integer will be editable as [integer] but more than one - as a text - list of numbers
                         // separated by comma so far for simplicity. Still didn't decide what to do with constraints
                         // for list of integers
@@ -322,8 +319,7 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                         return std::accumulate(val.begin(), val.end(), QString{}, [](const auto& l, const auto& r){
                                 return l + (l.isEmpty() ? "" : "; ") + QLocale().toString(r);
                             });
-                    }
-                    else if (role == Qt::ToolTipRole) {
+                    } else if (role == Qt::ToolTipRole) {
                         if (descr.second->constraint_type == SANE_CONSTRAINT_RANGE)
                             return tr("min value: %1, max value: %2")
                                     .arg(descr.second->constraint.range->min)
@@ -342,8 +338,7 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                                 c.m_values.push_back(QString::fromLocal8Bit(*p));
                         }
                         return QVariant::fromValue(std::move(c));
-                    }
-                    else if (role == Qt::DisplayRole || role == Qt::EditRole)
+                    } else if (role == Qt::DisplayRole || role == Qt::EditRole)
                         return QString::fromLocal8Bit(std::get<3>(getOptionValue(descr)));
                     break;
                 case SANE_TYPE_BOOL:
@@ -397,10 +392,9 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
         if (role == Qt::EditRole) {
             if (descr.second->size == sizeof(::SANE_Fixed)) {
                 res = true;
-                auto val = static_cast<::SANE_Fixed>(QLocale().toDouble(value.toString()) * (1 << SANE_FIXED_SCALE_SHIFT));
+                auto val = static_cast<::SANE_Fixed>(value.toDouble() * (1 << SANE_FIXED_SCALE_SHIFT));
                 opRes = setOptionValue(descr, vg_sane::opt_value_t{std::span{&val, 1}});
-            }
-            else {
+            } else {
                 std::vector<::SANE_Fixed> vals;
                 for (const auto& s : value.toString().split(";", Qt::SkipEmptyParts))
                     vals.push_back(static_cast<::SANE_Fixed>(QLocale().toDouble(s.trimmed()) * (1 << SANE_FIXED_SCALE_SHIFT)));
@@ -419,10 +413,9 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
         if (role == Qt::EditRole) {
             if (descr.second->size == sizeof(::SANE_Word)) {
                 res = true;
-                auto val = static_cast<::SANE_Word>(QLocale().toInt(value.toString()));
+                auto val = static_cast<::SANE_Word>(value.toInt());
                 opRes = setOptionValue(descr, vg_sane::opt_value_t{std::span{&val, 1}});
-            }
-            else {
+            } else {
                 std::vector<::SANE_Word> vals;
                 for (const auto& s : value.toString().split(";", Qt::SkipEmptyParts))
                     vals.push_back(QLocale().toInt(s.trimmed()));

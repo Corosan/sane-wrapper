@@ -266,7 +266,7 @@ inline device lib::open_device(const char* name) {
              std::make_shared<details::stub_option>("n4", "str", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT, 32),
              std::make_shared<details::stub_option>("n5", "btn", "", SANE_TYPE_BUTTON, SANE_CAP_SOFT_SELECT)};
         h[0]->value<::SANE_Word>() = 2;
-        h[0]->set_int_range_constraint({-6, 6, 2});
+        h[0]->set_int_range_constraint({-6, 6000, 2});
         h[1]->values<::SANE_Word>() = {1, 2, 3};
         h[1]->set_int_range_constraint({-10, 10, 1});
         h[2]->value<::SANE_Fixed>() = 1 << SANE_FIXED_SCALE_SHIFT;
