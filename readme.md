@@ -5,12 +5,16 @@
 [SANE](https://sane-project.org) is a scanner access generic library for Linux-like systems. It
 offers C API interface with flexible features and runtime scanner property access. This small
 project is an attempt to build C++ wrapper around it and minimal GUI using the wrapper. It's just an
-educational activity and can't be considered for any production cases so far. Sorry.
+educational activity and can't be considered for any production cases so far. Sorry. You may be
+interesting in [Insane Library](https://gitlab.gnome.org/World/OpenPaperwork/libinsane) instead.
 
 ## Notes
 
 1. It looks like SANE library doesn't make proper cleanup on sane_exit() call - calling it after the
-main thread has finished the main procedure entry point causes the library to raise a seg-fault.
+main thread has finished a main procedure entry point causes the library to raise a seg-fault. I guess
+the library starts some cleaning in its (previously registered) atexit() handler leaving itself in
+intermediate state. When my wrapper goes to be destroyed and calls sane_exit() - something finally
+breaks in the library.
 
 2. Clang doesn't compile some constructs with std::ranges::subrange usage - there are a number of
 bug reports in Internet.  So the project can be compiled with gcc so far.
@@ -30,4 +34,4 @@ work in most cases but makes code better separated into different domains.
 
 5. Supporting runtime type checks/constraints in GUI is really laborious work - I understand why
 many similar projects have poor look-and-feel and bad internal state representation in GUI. Not sure
-I will have enough passion to more this one forward.
+I will have enough passion to move this one forward further then others.
