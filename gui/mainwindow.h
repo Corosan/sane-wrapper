@@ -27,9 +27,9 @@ public:
 
 private slots:
     void deviceInfoModelReset();
-    void deviceInfoUpdateFinished(bool);
-    void scanError(std::string);
-    void onOptionButtonPressed(const QModelIndex&);
+    void deviceInfoUpdateFinished(bool, QString);
+    void deviceOptionsUpdateFinished(bool, QString);
+    void optionButtonPressed(const QModelIndex&);
 
     void on_btnReloadDevs_clicked();
     void on_comboBox_devices_currentIndexChanged(int index);

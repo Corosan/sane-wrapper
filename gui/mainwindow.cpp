@@ -25,7 +25,6 @@ MainWindow::MainWindow(QWidget *parent)
     m_scanWorker = new ScanWorker;
     m_scanWorker->moveToThread(&m_scanThread);
     Q_ASSERT(connect(&m_scanThread, &QThread::finished, m_scanWorker, &QObject::deleteLater));
-    Q_ASSERT(connect(m_scanWorker, &ScanWorker::errorHappened, this, &MainWindow::scanError));
 
     auto deviceListModel = new DeviceListModel(*m_scanWorker, this);
     ui->comboBox_devices->setModel(deviceListModel);
@@ -40,7 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
     Q_ASSERT(connect(ui->tableView_device_opts, &QTableView::clicked, delgt, &OptionItemDelegate::clicked));
     Q_ASSERT(connect(delgt, &OptionItemDelegate::updateButton, ui->tableView_device_opts,
         static_cast<void(QAbstractItemView::*)(const QModelIndex&)>(&QAbstractItemView::update)));
-    Q_ASSERT(connect(delgt, &OptionItemDelegate::buttonPressed, this, &MainWindow::onOptionButtonPressed));
+    Q_ASSERT(connect(delgt, &OptionItemDelegate::buttonPressed, this, &MainWindow::optionButtonPressed));
 
     delete oldDelegate;
 
@@ -60,12 +59,18 @@ void MainWindow::on_btnReloadDevs_clicked() {
     static_cast<DeviceListModel*>(ui->comboBox_devices->model())->update();
 }
 
-void MainWindow::deviceInfoUpdateFinished(bool res) {
+void MainWindow::deviceInfoUpdateFinished(bool res, QString error) {
+    if (! res)
+        QMessageBox::critical(this, this->windowTitle() + tr(" - error"), error);
+
     ui->btnReloadDevs->setEnabled(true);
 }
 
-void MainWindow::scanError(std::string s) {
-    QMessageBox::critical(this, this->windowTitle() + " - error", QString::fromLocal8Bit(s.c_str()));
+void MainWindow::deviceOptionsUpdateFinished(bool res, QString error) {
+    if (! res)
+        QMessageBox::critical(this, this->windowTitle() + tr(" - error"), error);
+    else
+        ui->tableView_device_opts->resizeColumnsToContents();
 }
 
 void MainWindow::deviceInfoModelReset() {
@@ -95,12 +100,14 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
         ui->tableView_device_opts->setModel(deviceOptionModel);
         delete oldModel;
 
-        connect(deviceOptionModel, &DeviceOptionModel::deviceOptionsUpdated,
-            ui->tableView_device_opts, &QTableView::resizeColumnsToContents);
+        Q_ASSERT(connect(deviceOptionModel, &DeviceOptionModel::deviceOptionsUpdated,
+            this, &MainWindow::deviceOptionsUpdateFinished));
     }
 }
 
-void MainWindow::onOptionButtonPressed(const QModelIndex& index) {
+void MainWindow::optionButtonPressed(const QModelIndex& index) {
+    // As long as 'button' option is a special kind of option which has no value but just a side effect
+    // instead, issue a 'setData()' call with any value.
     static_cast<DeviceOptionModel*>(ui->tableView_device_opts->model())->setData(index, true, Qt::EditRole);
 }
 

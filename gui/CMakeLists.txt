@@ -14,23 +14,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets LinguistTools REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets LinguistTools REQUIRED)
 
-set(TS_FILES gui_ru_RU.ts)
-
 set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
         scanworker.h
-        scanworker.cpp
-        ${TS_FILES}
-)
+        scanworker.cpp)
+
+set(TS_FILES
+        gui_ru_RU.ts)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(gui
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-    )
+    qt_add_executable(gui MANUAL_FINALIZATION ${PROJECT_SOURCES})
+
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET gui APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
@@ -38,19 +35,30 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()
+    set(qmDir "${CMAKE_CURRENT_BINARY_DIR}/qm")
+    file(MAKE_DIRECTORY ${qmDir})
+
+    set_source_files_properties(${TS_FILES} PROPERTIES OUTPUT_LOCATION ${qmDir})
+    qt5_create_translation(qmFileList ${PROJECT_SOURCES} ${TS_FILES})
+
+    set(qmResourcesFile "${qmDir}/app.qrc")
+    file(WRITE ${qmResourcesFile} "<!DOCTYPE RCC><RCC version=\"1.0\">\n  <qresource prefix=\"i18n\">\n")
+
+    foreach(qm_file ${qmFileList})
+      file(RELATIVE_PATH qm_filename ${qmDir} ${qm_file})
+      file(APPEND ${qmResourcesFile} "    <file alias=\"${qm_filename}\">${qm_file}</file>\n")
+    endforeach(qm_file)
+
+    file(APPEND ${qmResourcesFile} "  </qresource>\n</RCC>\n")
+
     if(ANDROID)
-        add_library(gui SHARED
-            ${PROJECT_SOURCES}
-        )
+        add_library(gui SHARED ${PROJECT_SOURCES})
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
-        add_executable(gui
-            ${PROJECT_SOURCES}
-        )
+        qt5_add_resources(RESOURCE_SOURCES ${qmResourcesFile})
+        add_executable(gui ${PROJECT_SOURCES} ${RESOURCE_SOURCES})
     endif()
-
-    qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
 target_link_libraries(gui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

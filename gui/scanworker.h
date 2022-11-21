@@ -16,42 +16,22 @@
 #include <sane-pp.h>
 
 #include <string>
+#include <variant>
+#include <exception>
 
-namespace vg_sane {
-    using device_infos_t = std::ranges::subrange<const ::SANE_Device**, const ::SANE_Device**>;
-    using device_opts_t = std::ranges::subrange<device::option_iterator>;
-}
+// Additional types and registrations used for communicating with ScanWorker object
+//
+using DeviceInfosOrError = std::variant<
+    std::ranges::subrange<const ::SANE_Device**, const ::SANE_Device**>,
+    std::exception_ptr>;
 
-// Additional types for communicating between backend worker and GUI model classes
-Q_DECLARE_METATYPE(vg_sane::device_infos_t)
-Q_DECLARE_METATYPE(vg_sane::device_opts_t)
+using DeviceOptionsOrError = std::variant<
+    std::ranges::subrange<vg_sane::device::option_iterator>,
+    std::exception_ptr>;
+
+Q_DECLARE_METATYPE(DeviceInfosOrError)
+Q_DECLARE_METATYPE(DeviceOptionsOrError)
 Q_DECLARE_METATYPE(std::string)
-
-struct string_data_constraint {
-    std::size_t m_maxLength;
-    QStringList m_values;
-};
-
-struct double_data_constraint {
-    double m_min;
-    double m_max;
-    double m_step;
-};
-
-struct double_data_list_constraint {
-    QVector<double> m_values;
-    double m_min;
-    double m_max;
-};
-
-using integer_data_constraint = const ::SANE_Range*;
-using integer_data_list_constraint = const ::SANE_Word*;
-
-Q_DECLARE_METATYPE(string_data_constraint)
-Q_DECLARE_METATYPE(integer_data_constraint)
-Q_DECLARE_METATYPE(integer_data_list_constraint)
-Q_DECLARE_METATYPE(double_data_constraint)
-Q_DECLARE_METATYPE(double_data_list_constraint)
 
 /*!
    \brief The Scanner bounary communication object working in separate thread. All the interaction
@@ -64,21 +44,41 @@ public:
     ScanWorker();
 
 public slots:
+    /*!
+     * \brief Starts asynchronous operation to get a list of available devices.
+     *
+     * Result will be returned in a form of asynchronous signal gotDeviceInfos().
+     */
     void getDeviceInfos();
+
+    /*!
+     * \brief Starts asynchronous operation to open specified device and get a list of its
+     *        available options.
+     *
+     * Result will be returned in a form of asynchronous signal gotDeviceOptions().
+     */
     void openDevice(std::string);
+
+    /*!
+     * \brief Starts asynchronous operation to get a list of available options for already
+     *        opened device.
+     *
+     * Result will be returned in a form of asynchronous signal gotDeviceOptions().
+     */
     void getDeviceOptions();
-    void getOptionValue(QSemaphore*, int, vg_sane::opt_value_t*, bool*) const;
-    void setOptionValue(QSemaphore*, int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, bool*);
+
+    void getOptionValue(QSemaphore*, int, vg_sane::opt_value_t*, std::exception_ptr*) const;
+    void setOptionValue(QSemaphore*, int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, std::exception_ptr*);
 
 private:
     vg_sane::lib::ptr_t m_saneLib;
     vg_sane::device m_currentDevice;
 
 signals:
-    void gotDeviceInfos(vg_sane::device_infos_t);
-    void gotDeviceOptions(vg_sane::device_opts_t);
-    void errorHappened(std::string) const;
+    void gotDeviceInfos(DeviceInfosOrError);
+    void gotDeviceOptions(DeviceOptionsOrError);
 };
+
 
 // Design choice: should we provide the only interface via this model to communicate with the
 // worker? Or it should be freely accessed outside this model?
@@ -118,8 +118,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
 
 private slots:
-    void gotDeviceInfos(vg_sane::device_infos_t);
-    void gotError(std::string);
+    void gotDeviceInfos(DeviceInfosOrError);
 
 public slots:
     /*!
@@ -135,8 +134,36 @@ signals:
 
     // public signals
     //
-    void updateFinished(bool);
+    void updateFinished(bool, QString);
 };
+
+// Additional types and registrations used for communicating with ScanWorker object
+//
+struct string_data_constraint {
+    std::size_t m_maxLength;
+    QStringList m_values;
+};
+
+struct double_data_constraint {
+    double m_min;
+    double m_max;
+    double m_step;
+};
+
+struct double_data_list_constraint {
+    QVector<double> m_values;
+    double m_min;
+    double m_max;
+};
+
+using integer_data_constraint = const ::SANE_Range*;
+using integer_data_list_constraint = const ::SANE_Word*;
+
+Q_DECLARE_METATYPE(string_data_constraint)
+Q_DECLARE_METATYPE(integer_data_constraint)
+Q_DECLARE_METATYPE(integer_data_list_constraint)
+Q_DECLARE_METATYPE(double_data_constraint)
+Q_DECLARE_METATYPE(double_data_list_constraint)
 
 /*!
    \brief The Model part of Model/View Framework representing all options available from specific device
@@ -145,7 +172,7 @@ class DeviceOptionModel : public QAbstractTableModel {
     Q_OBJECT
 
     ScanWorker& m_worker;
-    vg_sane::device_opts_t m_deviceOptionDescrs;
+    std::ranges::subrange<vg_sane::device::option_iterator> m_deviceOptionDescrs;
     bool m_updateInProgress = false;
 
 public:
@@ -194,38 +221,28 @@ public:
     Qt::ItemFlags flags(const QModelIndex &index) const override;
 
 private:
+    mutable bool m_isValid = true;
+
+    struct StopGetOptError {};
+
     // Proxy methods for transferring the call into a worker thread where SANE wrapper lives
     //
-    vg_sane::opt_value_t getOptionValue(int pos) const {
-        QSemaphore s;
-        vg_sane::opt_value_t val;
-        bool op_status = false;
-        emit getOptionValueSig(&s, pos, &val, &op_status);
-        s.acquire();
-        return val;
-    }
-    vg_sane::device::set_opt_result_t setOptionValue(int pos, vg_sane::opt_value_t val) {
-        QSemaphore s;
-        vg_sane::device::set_opt_result_t status;
-        bool op_status = false;
-        emit setOptionValueSig(&s, pos, &val, &status, &op_status);
-        s.acquire();
-        return status;
-    }
+    vg_sane::opt_value_t getOptionValue(const vg_sane::device::option_iterator::value_type& pos) const;
+    vg_sane::device::set_opt_result_t setOptionValue(
+        const vg_sane::device::option_iterator::value_type& pos, vg_sane::opt_value_t val);
 
 private slots:
-    void gotDeviceOptions(vg_sane::device_opts_t);
-    void gotError(std::string);
+    void gotDeviceOptions(DeviceOptionsOrError);
 
 signals:
     // private signals
     //
     void openDevice(std::string);
     void getDeviceOptions();
-    void getOptionValueSig(QSemaphore*, int, vg_sane::opt_value_t*, bool*) const;
-    void setOptionValueSig(QSemaphore*, int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, bool*);
+    void getOptionValueSig(QSemaphore*, int, vg_sane::opt_value_t*, std::exception_ptr*) const;
+    void setOptionValueSig(QSemaphore*, int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, std::exception_ptr*);
 
     // public signals
     //
-    void deviceOptionsUpdated();
+    void deviceOptionsUpdated(bool, QString) const;
 };
