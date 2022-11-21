@@ -45,19 +45,34 @@ void ScanWorker::getDeviceOptions() {
     }
 }
 
-vg_sane::opt_value_t ScanWorker::getOptionValue(int pos) const {
-    return m_currentDevice.get_option(pos);
+void ScanWorker::getOptionValue(QSemaphore* lock, int pos, vg_sane::opt_value_t* val, bool* status) const {
+    try {
+        *val = m_currentDevice.get_option(pos);
+        *status = true;
+    } catch (const std::exception& e) {
+        emit errorHappened(e.what());
+    }
+
+    lock->release();
 }
 
-vg_sane::device::set_opt_result_t ScanWorker::setOptionValue(int pos, vg_sane::opt_value_t val) {
-    return m_currentDevice.set_option(pos, val);
+void ScanWorker::setOptionValue(
+    QSemaphore* lock, int pos, vg_sane::opt_value_t* val, vg_sane::device::set_opt_result_t* opt_status, bool* status) {
+    try {
+        *opt_status = m_currentDevice.set_option(pos, *val);
+        *status = true;
+    } catch (const std::exception& e) {
+        emit errorHappened(e.what());
+    }
+
+    lock->release();
 }
 
 DeviceListModel::DeviceListModel(ScanWorker& worker, QObject* parent)
     : QAbstractListModel(parent) {
-    connect(this, &DeviceListModel::getDeviceInfos, &worker, &ScanWorker::getDeviceInfos);
-    connect(&worker, &ScanWorker::gotDeviceInfos, this, &DeviceListModel::gotDeviceInfos);
-    QObject::connect(&worker, &ScanWorker::errorHappened, this, &DeviceListModel::gotError);
+    Q_ASSERT(connect(this, &DeviceListModel::getDeviceInfos, &worker, &ScanWorker::getDeviceInfos));
+    Q_ASSERT(connect(&worker, &ScanWorker::gotDeviceInfos, this, &DeviceListModel::gotDeviceInfos));
+    Q_ASSERT(QObject::connect(&worker, &ScanWorker::errorHappened, this, &DeviceListModel::gotError));
 }
 
 void DeviceListModel::update() {
@@ -111,10 +126,12 @@ QVariant DeviceListModel::data(const QModelIndex &index, int role) const {
 DeviceOptionModel::DeviceOptionModel(ScanWorker& worker, QString name, QObject* parent)
     : QAbstractTableModel(parent)
     , m_worker(worker) {
-    connect(this, &DeviceOptionModel::openDevice, &worker, &ScanWorker::openDevice);
-    connect(this, &DeviceOptionModel::getDeviceOptions, &worker, &ScanWorker::getDeviceOptions);
-    connect(&worker, &ScanWorker::gotDeviceOptions, this, &DeviceOptionModel::gotDeviceOptions);
-    connect(&worker, &ScanWorker::errorHappened, this, &DeviceOptionModel::gotError);
+    Q_ASSERT(connect(this, &DeviceOptionModel::openDevice, &worker, &ScanWorker::openDevice));
+    Q_ASSERT(connect(this, &DeviceOptionModel::getDeviceOptions, &worker, &ScanWorker::getDeviceOptions));
+    Q_ASSERT(connect(this, &DeviceOptionModel::getOptionValueSig, &worker, &ScanWorker::getOptionValue));
+    Q_ASSERT(connect(this, &DeviceOptionModel::setOptionValueSig, &worker, &ScanWorker::setOptionValue));
+    Q_ASSERT(connect(&worker, &ScanWorker::gotDeviceOptions, this, &DeviceOptionModel::gotDeviceOptions));
+    Q_ASSERT(connect(&worker, &ScanWorker::errorHappened, this, &DeviceOptionModel::gotError));
 
     m_updateInProgress = true;
     emit openDevice(name.toStdString());
@@ -140,9 +157,14 @@ Qt::ItemFlags DeviceOptionModel::flags(const QModelIndex &index) const {
 
     const auto& descr = m_deviceOptionDescrs[index.row()];
 
+    // Tricky case is a 'button' type which is actually not a cell with some data for editing.
+    // There is no worth in having editable cell for buttons, but real GUI objects - buttons should
+    // be displayed there instead.
     if (SANE_OPTION_IS_ACTIVE(descr.second->cap) != SANE_TRUE)
         flags &= ~Qt::ItemIsEnabled;
-    else if (index.column() == ColumnValue && SANE_OPTION_IS_SETTABLE(descr.second->cap) == SANE_TRUE)
+    else if (index.column() == ColumnValue
+             && SANE_OPTION_IS_SETTABLE(descr.second->cap) == SANE_TRUE
+             && descr.second->type != SANE_TYPE_BUTTON)
         flags |= Qt::ItemIsEditable;
 
     return flags;
@@ -187,7 +209,7 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                 // One fixed will be editable as [double] but more than one - as a text - list of numbers
                 // separated by comma so far for simplicity. Still didn't decide what to do with constraints
                 // for list of fixeds
-                auto val = std::get<2>(m_worker.getOptionValue(descr.first));
+                auto val = std::get<2>(getOptionValue(descr.first));
                 if (val.size() == 1) {
                     auto dval = static_cast<double>(*val.data()) / (1 << SANE_FIXED_SCALE_SHIFT);
                     return role == Qt::DisplayRole ? QVariant(QLocale().toString(dval)) : QVariant(dval);
@@ -196,6 +218,17 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                         return l + (l.isEmpty() ? "" : "; ") +
                             QLocale().toString(static_cast<double>(r) / (1 << SANE_FIXED_SCALE_SHIFT));
                     });
+            }
+            else if (role == Qt::ToolTipRole) {
+                if (descr.second->constraint_type == 0)
+                    return tr("min value: -32768, max value: 32767.9999");
+                else if (descr.second->constraint_type == SANE_CONSTRAINT_RANGE)
+                    return tr("min value: %1, max value: %2")
+                            .arg(static_cast<double>(descr.second->constraint.range->min) / (1 << SANE_FIXED_SCALE_SHIFT))
+                            .arg(static_cast<double>(descr.second->constraint.range->max) / (1 << SANE_FIXED_SCALE_SHIFT))
+                        + (descr.second->constraint.range->quant != 0
+                            ? tr(", step: %1").arg(static_cast<double>(descr.second->constraint.range->quant) / (1 << SANE_FIXED_SCALE_SHIFT))
+                            : QString{});
             }
             break;
         case SANE_TYPE_INT:
@@ -209,10 +242,21 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                 // One integer will be editable as [integer] but more than one - as a text - list of numbers
                 // separated by comma so far for simplicity. Still didn't decide what to do with constraints
                 // for list of integers
-                auto val = std::get<2>(m_worker.getOptionValue(descr.first));
+                auto val = std::get<2>(getOptionValue(descr.first));
+                if (val.size() == 1 && role == Qt::EditRole)
+                    return *val.begin();
                 return std::accumulate(val.begin(), val.end(), QString{}, [](const auto& l, const auto& r){
                         return l + (l.isEmpty() ? "" : "; ") + QLocale().toString(r);
                     });
+            }
+            else if (role == Qt::ToolTipRole) {
+                if (descr.second->constraint_type == SANE_CONSTRAINT_RANGE)
+                    return tr("min value: %1, max value: %2")
+                            .arg(descr.second->constraint.range->min)
+                            .arg(descr.second->constraint.range->max)
+                        + (descr.second->constraint.range->quant != 0
+                            ? tr(", step: %1").arg(descr.second->constraint.range->quant)
+                            : QString{});
             }
             break;
         case SANE_TYPE_STRING:
@@ -226,14 +270,21 @@ QVariant DeviceOptionModel::data(const QModelIndex &index, int role) const {
                 return QVariant::fromValue(std::move(c));
             }
             else if (role == Qt::DisplayRole || role == Qt::EditRole)
-                return QString::fromLocal8Bit(std::get<3>(m_worker.getOptionValue(descr.first)));
+                return QString::fromLocal8Bit(std::get<3>(getOptionValue(descr.first)));
             break;
         case SANE_TYPE_BOOL:
             if (role == Qt::CheckStateRole)
-                return get<1>(m_worker.getOptionValue(descr.first)).get() ? Qt::Checked : Qt::Unchecked;
+                return get<1>(getOptionValue(descr.first)).get() ? Qt::Checked : Qt::Unchecked;
             else if (role == Qt::EditRole)
-                return static_cast<bool>(get<1>(m_worker.getOptionValue(descr.first)));
+                return static_cast<bool>(get<1>(getOptionValue(descr.first)));
             break;
+        case SANE_TYPE_GROUP:
+            return {};  // no special highlighting for a separator between groups though
+                        // some fancy line could be displayed instead
+        case SANE_TYPE_BUTTON:
+            if (role == ButtonRole)
+                return true;
+            return {};
         default:
             if (role == Qt::DisplayRole)
                 return QString("<unsupported_type:%1>").arg(descr.second->type);
@@ -269,7 +320,7 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
             if (descr.second->size == sizeof(::SANE_Fixed)) {
                 res = true;
                 auto val = static_cast<::SANE_Fixed>(QLocale().toDouble(value.toString()) * (1 << SANE_FIXED_SCALE_SHIFT));
-                opRes = m_worker.setOptionValue(descr.first, vg_sane::opt_value_t{std::span{&val, 1}});
+                opRes = setOptionValue(descr.first, vg_sane::opt_value_t{std::span{&val, 1}});
             }
             else {
                 std::vector<::SANE_Fixed> vals;
@@ -282,7 +333,7 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
                      && descr.second->constraint.word_list[0] > 0) ?
                         descr.second->constraint.word_list[1] : 0);
                 res = true;
-                opRes = m_worker.setOptionValue(descr.first, vg_sane::opt_value_t{std::span{vals}});
+                opRes = setOptionValue(descr.first, vg_sane::opt_value_t{std::span{vals}});
             }
         }
         break;
@@ -291,7 +342,7 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
             if (descr.second->size == sizeof(::SANE_Word)) {
                 res = true;
                 auto val = static_cast<::SANE_Word>(QLocale().toInt(value.toString()));
-                opRes = m_worker.setOptionValue(descr.first, vg_sane::opt_value_t{std::span{&val, 1}});
+                opRes = setOptionValue(descr.first, vg_sane::opt_value_t{std::span{&val, 1}});
             }
             else {
                 std::vector<::SANE_Word> vals;
@@ -304,14 +355,14 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
                       && descr.second->constraint.word_list[0] > 0) ?
                         descr.second->constraint.word_list[1] : 0);
                 res = true;
-                opRes = m_worker.setOptionValue(descr.first, vg_sane::opt_value_t{std::span{vals}});
+                opRes = setOptionValue(descr.first, vg_sane::opt_value_t{std::span{vals}});
             }
         }
         break;
     case SANE_TYPE_STRING:
         if (role == Qt::EditRole) {
             res = true;
-            opRes = m_worker.setOptionValue(descr.first,
+            opRes = setOptionValue(descr.first,
                 vg_sane::opt_value_t{value.toString().toLocal8Bit().data()});
         }
         break;
@@ -319,8 +370,15 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
         if (role == Qt::EditRole) {
             res = true;
             ::SANE_Bool val = value.toBool() ? SANE_TRUE : SANE_FALSE;
-            opRes = m_worker.setOptionValue(descr.first, vg_sane::opt_value_t{val});
+            opRes = setOptionValue(descr.first, vg_sane::opt_value_t{val});
         }
+        break;
+    case SANE_TYPE_BUTTON:
+        if (role == Qt::EditRole) {
+            res = true;
+            opRes = setOptionValue(descr.first, {});
+        }
+    default:
         break;
     }
 

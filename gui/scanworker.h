@@ -8,6 +8,7 @@
 #include <QModelIndex>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
+#include <QSemaphore>
 
 #include <QtGlobal>
 #include <QDebug>
@@ -52,8 +53,9 @@ Q_DECLARE_METATYPE(integer_data_list_constraint)
 Q_DECLARE_METATYPE(double_data_constraint)
 Q_DECLARE_METATYPE(double_data_list_constraint)
 
-/**
- * @brief scanner bounary communication object working in separate thread
+/*!
+   \brief The Scanner bounary communication object working in separate thread. All the interaction
+          with SANE library is done in that thread.
  */
 class ScanWorker : public QObject {
     Q_OBJECT
@@ -61,14 +63,12 @@ class ScanWorker : public QObject {
 public:
     ScanWorker();
 
-    // Design choice: whether it's acceptable to access next methods from GUI thread?
-    vg_sane::opt_value_t getOptionValue(int pos) const;
-    vg_sane::device::set_opt_result_t setOptionValue(int pos, vg_sane::opt_value_t);
-
 public slots:
     void getDeviceInfos();
     void openDevice(std::string);
     void getDeviceOptions();
+    void getOptionValue(QSemaphore*, int, vg_sane::opt_value_t*, bool*) const;
+    void setOptionValue(QSemaphore*, int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, bool*);
 
 private:
     vg_sane::lib::ptr_t m_saneLib;
@@ -77,11 +77,15 @@ private:
 signals:
     void gotDeviceInfos(vg_sane::device_infos_t);
     void gotDeviceOptions(vg_sane::device_opts_t);
-    void errorHappened(std::string);
+    void errorHappened(std::string) const;
 };
 
 // Design choice: should we provide the only interface via this model to communicate with the
 // worker? Or it should be freely accessed outside this model?
+/*!
+   \brief The The Model part of Model/View Framework representing all available devices connected to
+          the machine this program is running on.
+ */
 class DeviceListModel : public QAbstractListModel {
     Q_OBJECT
 
@@ -118,10 +122,9 @@ private slots:
     void gotError(std::string);
 
 public slots:
-    /**
-     * @brief starts asynchronous updating procedure
-     *
-     * At the end a signal updateFinished() is raised with status and optional error string.
+    /*!
+       \brief starts asynchronous updating procedure. At the end a signal updateFinished() is raise
+              with status and optional error string.
      */
     void update();
 
@@ -135,7 +138,9 @@ signals:
     void updateFinished(bool);
 };
 
-
+/*!
+   \brief The Model part of Model/View Framework representing all options available from specific device
+ */
 class DeviceOptionModel : public QAbstractTableModel {
     Q_OBJECT
 
@@ -151,9 +156,18 @@ public:
         ColumnLast
     };
 
+    /*!
+       \brief Additional roles available for requesting from this Model
+     */
     enum DeviceInfoRole {
-        // This role returns QVariant with optionally one of XXX_constraint types declared above
-        ConstraintRole = Qt::UserRole
+        /*!
+           \brief This role returns QVariant with optionally one of XXX_constraint types declared above
+         */
+        ConstraintRole = Qt::UserRole,
+        /*!
+           \brief This role returns QVariant with bool = true if the cell should be displayed as a button
+         */
+        ButtonRole = Qt::UserRole + 1
     };
 
     explicit DeviceOptionModel(ScanWorker& worker, QString name, QObject* parent = nullptr);
@@ -179,6 +193,26 @@ public:
 
     Qt::ItemFlags flags(const QModelIndex &index) const override;
 
+private:
+    // Proxy methods for transferring the call into a worker thread where SANE wrapper lives
+    //
+    vg_sane::opt_value_t getOptionValue(int pos) const {
+        QSemaphore s;
+        vg_sane::opt_value_t val;
+        bool op_status = false;
+        emit getOptionValueSig(&s, pos, &val, &op_status);
+        s.acquire();
+        return val;
+    }
+    vg_sane::device::set_opt_result_t setOptionValue(int pos, vg_sane::opt_value_t val) {
+        QSemaphore s;
+        vg_sane::device::set_opt_result_t status;
+        bool op_status = false;
+        emit setOptionValueSig(&s, pos, &val, &status, &op_status);
+        s.acquire();
+        return status;
+    }
+
 private slots:
     void gotDeviceOptions(vg_sane::device_opts_t);
     void gotError(std::string);
@@ -188,7 +222,10 @@ signals:
     //
     void openDevice(std::string);
     void getDeviceOptions();
+    void getOptionValueSig(QSemaphore*, int, vg_sane::opt_value_t*, bool*) const;
+    void setOptionValueSig(QSemaphore*, int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, bool*);
 
     // public signals
+    //
     void deviceOptionsUpdated();
 };

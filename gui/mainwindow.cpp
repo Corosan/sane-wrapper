@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QMetaType>
 #include <QApplication>
 #include <QMessageBox>
 #include <QComboBox>
@@ -9,6 +10,7 @@
 #include <QLineEdit>
 #include <QIntValidator>
 #include <QDoubleValidator>
+#include <QItemEditorCreatorBase>
 
 #include <cmath>
 #include <memory>
@@ -22,16 +24,24 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_scanWorker = new ScanWorker;
     m_scanWorker->moveToThread(&m_scanThread);
-    connect(&m_scanThread, &QThread::finished, m_scanWorker, &QObject::deleteLater);
-    connect(m_scanWorker, &ScanWorker::errorHappened, this, &MainWindow::scanError);
+    Q_ASSERT(connect(&m_scanThread, &QThread::finished, m_scanWorker, &QObject::deleteLater));
+    Q_ASSERT(connect(m_scanWorker, &ScanWorker::errorHappened, this, &MainWindow::scanError));
 
     auto deviceListModel = new DeviceListModel(*m_scanWorker, this);
     ui->comboBox_devices->setModel(deviceListModel);
-    connect(deviceListModel, &DeviceListModel::modelReset, this, &MainWindow::deviceInfoModelReset);
-    connect(deviceListModel, &DeviceListModel::updateFinished, this, &MainWindow::deviceInfoUpdateFinished);
+    Q_ASSERT(connect(deviceListModel, &DeviceListModel::modelReset, this, &MainWindow::deviceInfoModelReset));
+    Q_ASSERT(connect(deviceListModel, &DeviceListModel::updateFinished, this, &MainWindow::deviceInfoUpdateFinished));
 
     auto oldDelegate = ui->tableView_device_opts->itemDelegate();
-    ui->tableView_device_opts->setItemDelegate(new OptionItemDelegate(this));
+    auto delgt = new OptionItemDelegate(this);
+    ui->tableView_device_opts->setItemDelegate(delgt);
+
+    Q_ASSERT(connect(ui->tableView_device_opts, &QTableView::pressed, delgt, &OptionItemDelegate::pressed));
+    Q_ASSERT(connect(ui->tableView_device_opts, &QTableView::clicked, delgt, &OptionItemDelegate::clicked));
+    Q_ASSERT(connect(delgt, &OptionItemDelegate::updateButton, ui->tableView_device_opts,
+        static_cast<void(QAbstractItemView::*)(const QModelIndex&)>(&QAbstractItemView::update)));
+    Q_ASSERT(connect(delgt, &OptionItemDelegate::buttonPressed, this, &MainWindow::onOptionButtonPressed));
+
     delete oldDelegate;
 
     m_scanThread.start();
@@ -90,12 +100,62 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
     }
 }
 
+void MainWindow::onOptionButtonPressed(const QModelIndex& index) {
+    static_cast<DeviceOptionModel*>(ui->tableView_device_opts->model())->setData(index, true, Qt::EditRole);
+}
+
+void OptionItemDelegate::pressed(const QModelIndex& index) {
+    if (index.column() == 1) {
+        if (auto val = index.data(DeviceOptionModel::ButtonRole);
+            val.type() == qMetaTypeId<bool>()
+            && val.toBool()) {
+
+            m_pressedIndex = index;
+            emit updateButton(index);
+        }
+    }
+}
+
+void OptionItemDelegate::clicked(const QModelIndex& index) {
+    if (m_pressedIndex.isValid()) {
+        m_pressedIndex = {};
+        emit updateButton(index);
+        emit buttonPressed(index);
+    }
+}
+
+void OptionItemDelegate::paint(QPainter *painter,
+    const QStyleOptionViewItem &option, const QModelIndex &index) const {
+
+    if (index.column() == 1) {
+        if (auto val = index.data(DeviceOptionModel::ButtonRole);
+            val.type() == qMetaTypeId<bool>()
+            && val.toBool()) {
+
+            QStyleOptionButton btnStyle;
+            static_cast<QStyleOption&>(btnStyle) = option;
+            if (m_pressedIndex == index)
+                btnStyle.state |= QStyle::State_Sunken;
+            const QWidget* widget = option.widget;
+            QStyle* style = widget ? widget->style() : QApplication::style();
+            style->drawControl(QStyle::CE_PushButton, &btnStyle, painter, widget);
+            return;
+        }
+    }
+
+    Base_t::paint(painter, option, index);
+}
+
+/*!
+   \brief Create various types of editors for editing device options with corresponding constraints
+          (list, range, ...)
+ */
 QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
     const QModelIndex &index) const {
     m_editingRow = index.row();
 
     if (auto c = index.data(DeviceOptionModel::ConstraintRole); c.isValid()) {
-        if (c.canConvert<string_data_constraint>()) {
+        if (c.userType() == qMetaTypeId<string_data_constraint>()) {
             const auto& str_c = c.value<string_data_constraint>();
             if (str_c.m_values.empty()) {
                 auto editor = std::make_unique<QLineEdit>(parent);
@@ -107,8 +167,7 @@ QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionVie
             editor->addItems(str_c.m_values);
             editor->lineEdit()->setMaxLength(str_c.m_maxLength);
             return editor.release();
-        }
-        else if (c.canConvert<integer_data_constraint>()) {
+        } else if (c.userType() == qMetaTypeId<integer_data_constraint>()) {
             auto editor = std::unique_ptr<QWidget>(Base_t::createEditor(parent, option, index));
             if (auto spinBox = dynamic_cast<QSpinBox*>(editor.get())) {
                 auto int_c = c.value<integer_data_constraint>();
@@ -118,8 +177,7 @@ QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionVie
                     spinBox->setSingleStep(int_c->quant);
             }
             return editor.release();
-        }
-        else if (c.canConvert<integer_data_list_constraint>()) {
+        } else if (c.userType() == qMetaTypeId<integer_data_list_constraint>()) {
             auto editor = std::make_unique<QComboBox>(parent);
             editor->setEditable(true);
             auto int_lst = c.value<integer_data_list_constraint>();
@@ -129,8 +187,7 @@ QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionVie
             editor->setValidator(new QIntValidator(
                 std::numeric_limits<::SANE_Int>::min(), std::numeric_limits<::SANE_Int>::max(), editor.get()));
             return editor.release();
-        }
-        else if (c.canConvert<double_data_constraint>()) {
+        } else if (c.userType() == qMetaTypeId<double_data_constraint>()) {
             auto editor = std::unique_ptr<QWidget>(Base_t::createEditor(parent, option, index));
             if (auto spinBox = dynamic_cast<QDoubleSpinBox*>(editor.get())) {
                 auto double_c = c.value<double_data_constraint>();
@@ -141,8 +198,7 @@ QWidget* OptionItemDelegate::createEditor(QWidget *parent, const QStyleOptionVie
                     spinBox->setSingleStep(double_c.m_step);
             }
             return editor.release();
-        }
-        else if (c.canConvert<double_data_list_constraint>()) {
+        } else if (c.userType() == qMetaTypeId<double_data_list_constraint>()) {
             auto editor = std::make_unique<QComboBox>(parent);
             editor->setEditable(true);
             auto double_c = c.value<double_data_list_constraint>();
@@ -163,32 +219,3 @@ void OptionItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index
     else
         Base_t::setEditorData(editor, index);
 }
-
-/*
-void OptionItemDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const {
-
-}
-*/
-/*
-void OptionItemDelegate::paint(QPainter *painter,
-    const QStyleOptionViewItem &option, const QModelIndex &index) const {
-
-    auto o = option;
-    o.features = QStyleOptionViewItem::HasCheckIndicator | QStyleOptionViewItem::HasDecoration;
-    o.showDecorationSelected = true;
-    o.checkState = Qt::Checked;
-    QStyledItemDelegate::paint(painter, o, index);
-
-    auto opt = option;
-    initStyleOption(&opt, index);
-
-    if (index.parent() == QModelIndex() && index.column() == 1) {
-
-    }
-
-    auto* widget = option.widget;
-    auto* style = widget->style();
-    style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, widget);
-
-}
-*/

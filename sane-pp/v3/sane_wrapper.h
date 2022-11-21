@@ -232,6 +232,8 @@ private:
     mutable handle_t m_handle;
 #else
     handle_t m_handle = {};
+    // SANE library requires a storage to place an option data into
+    mutable std::vector<char> m_option_data_buffer;
 #endif
     std::string m_name;
     deletion_cb_t m_deletion_cb; // locks the library singleton inside lambda, stored here
@@ -261,54 +263,18 @@ inline device lib::open_device(const char* name) {
              std::make_shared<details::stub_option>("n1", "int list sample", "", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT, 3),
              std::make_shared<details::stub_option>("n2", "fixed sample", "", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT),
              std::make_shared<details::stub_option>("n3", "fixed list sample", "", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT, 3),
-             std::make_shared<details::stub_option>("n4", "str", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT, 32)};
+             std::make_shared<details::stub_option>("n4", "str", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT, 32),
+             std::make_shared<details::stub_option>("n5", "btn", "", SANE_TYPE_BUTTON, SANE_CAP_SOFT_SELECT)};
         h[0]->value<::SANE_Word>() = 2;
+        h[0]->set_int_range_constraint({-6, 6, 2});
         h[1]->values<::SANE_Word>() = {1, 2, 3};
+        h[1]->set_int_range_constraint({-10, 10, 1});
         h[2]->value<::SANE_Fixed>() = 1 << SANE_FIXED_SCALE_SHIFT;
+        h[2]->set_int_range_constraint({0, 10 << SANE_FIXED_SCALE_SHIFT, 1 << (SANE_FIXED_SCALE_SHIFT - 1)});
         h[3]->values<::SANE_Fixed>() = {1 << SANE_FIXED_SCALE_SHIFT, 2 << SANE_FIXED_SCALE_SHIFT, 5 << (SANE_FIXED_SCALE_SHIFT - 1)};
         h[4]->str() = "test string";
-/*
-        h = {std::make_shared<details::stub_option>("name1", "title 1", "descr 1", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("name2", "title 2", "descr 2", SANE_TYPE_BOOL, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("name3", "title 33", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("name 4", "title 4", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT)};
-        std::string_view s = "test string";
-        h[0]->m_d.unit = SANE_UNIT_MM;
-        h[0]->m_d.size = sizeof(::SANE_Word);   // one item only
-        h[0]->value<::SANE_Word>() = 14;
-        //h[0]->set_int_range_constraint({12, 20, 2});
-        h[0]->set_int_list_constraint({14, 20, 100});
-        h[1]->m_d.size = sizeof(::SANE_Bool);
-        h[1]->m_d.unit = SANE_UNIT_DPI;
-        h[2]->m_d.size = 16;
-        const char s1[] = "test string 1";
-        h[2]->m_data.assign(std::begin(s1), std::end(s1));
-        h[3]->m_d.size = 128;
-        const char s2[] = "test string 2";
-        h[3]->m_data.assign(std::begin(s2), std::end(s2));
-        h[3]->set_str_constraint({"val 1", "val 2", "val 3"});
-*/
     } else {
-/*
-        h = {std::make_shared<details::stub_option>("name1b", "title 1 b", "descr 1b", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("name 2b", "title 2b", "descr 2bb", SANE_TYPE_BOOL, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("fixed_value", "fixed value", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("fixed_list", "fixed list", "descr 3", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT)};
-        h[0]->m_d.size = 3 * sizeof(::SANE_Word);
-        h[2]->m_d.size = sizeof(::SANE_Fixed);
-        h[3]->m_d.size = 4 * sizeof(::SANE_Fixed);
-        h[0]->value<::SANE_Word>() = 5;
-        h[0]->value<::SANE_Word>(1) = 6;
-        h[0]->value<::SANE_Word>(2) = 8;
-        h[0]->set_int_range_constraint({2, 20, 1});
-        h[2]->value<::SANE_Fixed>() = 1 << SANE_FIXED_SCALE_SHIFT;
-        //h[2]->set_int_range_constraint({-1 << SANE_FIXED_SCALE_SHIFT, 10 << SANE_FIXED_SCALE_SHIFT, 1 << (SANE_FIXED_SCALE_SHIFT - 1)});
-        h[2]->set_int_list_constraint({1 << SANE_FIXED_SCALE_SHIFT, 2 << SANE_FIXED_SCALE_SHIFT, 5 << (SANE_FIXED_SCALE_SHIFT - 1)});
-        h[3]->value<::SANE_Fixed>() = 1 << SANE_FIXED_SCALE_SHIFT;              // 1
-        h[3]->value<::SANE_Fixed>(1) = 2 << SANE_FIXED_SCALE_SHIFT;             // 2
-        h[3]->value<::SANE_Fixed>(2) = 5 << (SANE_FIXED_SCALE_SHIFT - 1);       // 2.5
-        h[3]->value<::SANE_Fixed>(3) = 4 << SANE_FIXED_SCALE_SHIFT;             // 4
-*/
+        // No properties
     }
 #else
     details::checked_call([&name](){ return std::string{"unable to get device \""} + name + '"'; },
@@ -363,6 +329,8 @@ inline opt_value_t device::get_option(int pos) const {
 #ifdef SANE_PP_STUB
     data = m_handle[static_cast<std::size_t>(pos) - 1]->m_data.data();
 #else
+    m_option_data_buffer.resize(descr->size);
+    data = m_option_data_buffer.data();
     details::checked_call([this, pos](){ return "unable to get value for option idx=" +
             std::to_string(pos) + " from device \"" + m_name + "\""; },
         &::sane_control_option, m_handle, pos, SANE_ACTION_GET_VALUE, data, nullptr);
@@ -409,13 +377,16 @@ inline device::set_opt_result_t device::set_option(int pos, opt_value_t val) {
 
     ::SANE_Int flags = {};
 #ifdef SANE_PP_STUB
-    m_handle[static_cast<std::size_t>(pos) - 1]->m_data.assign(
-        static_cast<char*>(data), static_cast<char*>(data) + descr->size);
-    if (m_name != "dev 1" && pos == 1)
-        *(reinterpret_cast<::SANE_Word*>(m_handle[0]->m_data.data()) + 2) = 2;
-    if (std::memcmp(static_cast<char*>(data), "test", 5) == 0) {
-        m_handle.erase(m_handle.begin());
-        flags |= SANE_INFO_RELOAD_OPTIONS;
+    if (data) {
+        m_handle[static_cast<std::size_t>(pos) - 1]->m_data.assign(
+            static_cast<char*>(data), static_cast<char*>(data) + descr->size);
+        if (m_name != "dev 1" && pos == 1)
+            *(reinterpret_cast<::SANE_Word*>(m_handle[0]->m_data.data()) + 2) = 2;
+
+        if (std::memcmp(static_cast<char*>(data), "test", 5) == 0) {
+            m_handle.erase(m_handle.begin());
+            flags |= SANE_INFO_RELOAD_OPTIONS;
+        }
     }
 #else
     details::checked_call([this, pos](){ return "unable to set value for option idx=" +

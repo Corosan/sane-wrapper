@@ -4,42 +4,59 @@
 <context>
     <name>DeviceOptionModel</name>
     <message>
-        <location filename="scanworker.cpp" line="246"/>
+        <location filename="scanworker.cpp" line="224"/>
+        <source>min value: -32768, max value: 32767.9999</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="scanworker.cpp" line="226"/>
+        <location filename="scanworker.cpp" line="254"/>
+        <source>min value: %1, max value: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="scanworker.cpp" line="230"/>
+        <location filename="scanworker.cpp" line="258"/>
+        <source>, step: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="scanworker.cpp" line="297"/>
         <source>px</source>
         <translation>пикс</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="247"/>
+        <location filename="scanworker.cpp" line="298"/>
         <source>bit</source>
         <translation>бит</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="248"/>
+        <location filename="scanworker.cpp" line="299"/>
         <source>mm</source>
         <translation>мм</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="249"/>
+        <location filename="scanworker.cpp" line="300"/>
         <source>dpi</source>
         <translation>тчк/дюйм</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="251"/>
+        <location filename="scanworker.cpp" line="302"/>
         <source>us</source>
         <translation>мкс</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="174"/>
+        <location filename="scanworker.h" line="188"/>
         <source>Property</source>
         <translation>Свойство</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="175"/>
+        <location filename="scanworker.h" line="189"/>
         <source>Value</source>
         <translation>Значение</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="176"/>
+        <location filename="scanworker.h" line="190"/>
         <source>Unit</source>
         <translation>Ед.</translation>
     </message>
