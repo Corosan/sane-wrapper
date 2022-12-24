@@ -20,7 +20,9 @@ set(PROJECT_SOURCES
         mainwindow.h
         mainwindow.ui
         scanworker.h
-        scanworker.cpp)
+        scanworker.cpp
+        drawingsurface.h
+        drawingsurface.cpp)
 
 set(TS_FILES
         gui_ru_RU.ts)
@@ -75,7 +77,7 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(gui)
 endif()
 
-set(SANE_PP_STUB ON)
+# set(SANE_PP_STUB ON)
 add_subdirectory(../sane-pp sane-pp)
 
 target_link_libraries(gui PRIVATE sane-pp)

@@ -7,13 +7,12 @@
         <location filename="scanworker.cpp" line="90"/>
         <source>Unexpected error on getting devices list:
 %1</source>
-        <translation>Неожиданная ошибка при получении списка устройств:
-%1</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.cpp" line="92"/>
         <source>Unknown error on getting devices list</source>
-        <translation>Неизвестная ошибка при получении списка устройств</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -22,94 +21,91 @@
         <location filename="scanworker.cpp" line="158"/>
         <source>Unexpected error on getting device options list:
 %1</source>
-        <translation>Неожиданная ошибка при получении списка опций устройства:
-%1</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.cpp" line="160"/>
         <source>Unknown error on getting device options list</source>
-        <translation>Неизвестная ошибка при получении списка опций устройства</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.cpp" line="185"/>
         <source>Unexpected error on getting an option &quot;%1&quot; (stop reading others):
 %2</source>
-        <translation>Неожиданная ошибка при получении опции &quot;%1&quot; (остальные не читаем):
-%2</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.cpp" line="190"/>
         <source>Unknown error on getting an option &quot;%1&quot; (stop reading others)</source>
-        <translation>Неизвестная ошибка при получении опции &quot;%1&quot; (остальные не читаем)</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.cpp" line="210"/>
         <source>Unexpected error on setting an option &quot;%1&quot;:
 %2</source>
-        <translation>Неожиданная ошибка при установке опции &quot;%1&quot;:
-%2</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.cpp" line="214"/>
         <source>Unknown error on setting an option &quot;%1&quot;</source>
-        <translation>Неизвестная ошибка при установке опции &quot;%1&quot;</translation>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="scanworker.cpp" line="296"/>
+        <source>min value: -32768, max value: 32767.9999</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.cpp" line="298"/>
-        <source>min value: -32768, max value: 32767.9999</source>
-        <translation>мин. значение: -32768, макс. значение: 32767,9999</translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="300"/>
-        <location filename="scanworker.cpp" line="328"/>
+        <location filename="scanworker.cpp" line="324"/>
         <source>min value: %1, max value: %2</source>
-        <translation>мин. значение: %1, макс. значение: %2</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="304"/>
-        <location filename="scanworker.cpp" line="332"/>
+        <location filename="scanworker.cpp" line="302"/>
+        <location filename="scanworker.cpp" line="328"/>
         <source>, step: %1</source>
-        <translation>, шаг: %1</translation>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="scanworker.cpp" line="367"/>
+        <source>px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="scanworker.cpp" line="368"/>
+        <source>bit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="scanworker.cpp" line="369"/>
+        <source>mm</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="scanworker.cpp" line="370"/>
+        <source>dpi</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.cpp" line="372"/>
-        <source>px</source>
-        <translation>пикс</translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="373"/>
-        <source>bit</source>
-        <translation>бит</translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="374"/>
-        <source>mm</source>
-        <translation>мм</translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="375"/>
-        <source>dpi</source>
-        <translation>тчк/дюйм</translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="377"/>
         <source>us</source>
-        <translation>мкс</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.h" line="215"/>
         <source>Property</source>
-        <translation>Свойство</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.h" line="216"/>
         <source>Value</source>
-        <translation>Значение</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="scanworker.h" line="217"/>
         <source>Unit</source>
-        <translation>Ед.</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -117,38 +113,38 @@
     <message>
         <location filename="mainwindow.ui" line="14"/>
         <source>Scanner</source>
-        <translation>Сканер</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="40"/>
+        <location filename="mainwindow.ui" line="58"/>
         <source>Device</source>
-        <translation>Устройство</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="68"/>
+        <location filename="mainwindow.ui" line="86"/>
         <source>Vendor:</source>
-        <translation>Производитель:</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="85"/>
+        <location filename="mainwindow.ui" line="103"/>
         <source>Model:</source>
-        <translation>Модель:</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="102"/>
+        <location filename="mainwindow.ui" line="120"/>
         <source>Type:</source>
-        <translation>Тип:</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="121"/>
+        <location filename="mainwindow.ui" line="139"/>
         <source>Parameters</source>
-        <translation>Параметры</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="64"/>
-        <location filename="mainwindow.cpp" line="71"/>
+        <location filename="mainwindow.cpp" line="67"/>
+        <location filename="mainwindow.cpp" line="74"/>
         <source> - error</source>
-        <translation> - ошибка</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>

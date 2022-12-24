@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "drawingsurface.h"
+
 #include <QMetaType>
 #include <QApplication>
 #include <QMessageBox>
@@ -17,7 +19,8 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow) {
+    , ui(new Ui::MainWindow)
+    , m_optionTableResizedFirstTime(false) {
     ui->setupUi(this);
 
     m_scanThread.setObjectName("scan_thread");
@@ -69,8 +72,10 @@ void MainWindow::deviceInfoUpdateFinished(bool res, QString error) {
 void MainWindow::deviceOptionsUpdateFinished(bool res, QString error) {
     if (! res)
         QMessageBox::critical(this, this->windowTitle() + tr(" - error"), error);
-    else
+    else if (! m_optionTableResizedFirstTime) {
         ui->tableView_device_opts->resizeColumnsToContents();
+        m_optionTableResizedFirstTime = true;
+    }
 }
 
 void MainWindow::deviceInfoModelReset() {

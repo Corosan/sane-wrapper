@@ -38,6 +38,7 @@ private:
     Ui::MainWindow *ui;
     QThread m_scanThread;
     ScanWorker* m_scanWorker;
+    bool m_optionTableResizedFirstTime;
 };
 
 class OptionItemDelegate : public QStyledItemDelegate {
