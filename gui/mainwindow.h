@@ -34,6 +34,8 @@ private slots:
     void on_btnReloadDevs_clicked();
     void on_comboBox_devices_currentIndexChanged(int index);
 
+    void on_actionStart_triggered();
+
 private:
     Ui::MainWindow *ui;
     QThread m_scanThread;

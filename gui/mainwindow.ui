@@ -21,6 +21,14 @@
        <bool>true</bool>
       </property>
       <widget class="DrawingSurface" name="scrollAreaWidgetContents">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>16</width>
+         <height>16</height>
+        </rect>
+       </property>
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -41,6 +49,14 @@
      <height>32</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuCapture">
+    <property name="title">
+     <string>Capture</string>
+    </property>
+    <addaction name="actionStart"/>
+    <addaction name="actionStop"/>
+   </widget>
+   <addaction name="menuCapture"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockWidget">
@@ -152,6 +168,16 @@
     </layout>
    </widget>
   </widget>
+  <action name="actionStart">
+   <property name="text">
+    <string>Start</string>
+   </property>
+  </action>
+  <action name="actionStop">
+   <property name="text">
+    <string>Stop</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

@@ -8,7 +8,6 @@
 #include <QModelIndex>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
-#include <QSemaphore>
 
 #include <QtGlobal>
 #include <QDebug>
@@ -16,6 +15,7 @@
 #include <sane-pp.h>
 
 #include <string>
+#include <vector>
 #include <variant>
 #include <exception>
 
@@ -29,8 +29,13 @@ using DeviceOptionsOrError = std::variant<
     std::ranges::subrange<vg_sane::device::option_iterator>,
     std::exception_ptr>;
 
+using ScanParametersOrError = std::variant<::SANE_Parameters, std::exception_ptr>;
+using ScanningDataOrError = std::variant<std::vector<char>, std::exception_ptr>;
+
 Q_DECLARE_METATYPE(DeviceInfosOrError)
 Q_DECLARE_METATYPE(DeviceOptionsOrError)
+Q_DECLARE_METATYPE(ScanParametersOrError)
+Q_DECLARE_METATYPE(ScanningDataOrError)
 Q_DECLARE_METATYPE(std::string)
 
 /*!
@@ -45,7 +50,7 @@ public:
 
 public slots:
     /*!
-     * \brief Starts asynchronous operation to get a list of available devices.
+     * \brief Starts asynchronous operation to get a list of available devices
      *
      * Result will be returned in a form of asynchronous signal gotDeviceInfos().
      */
@@ -53,7 +58,7 @@ public slots:
 
     /*!
      * \brief Starts asynchronous operation to open specified device and get a list of its
-     *        available options.
+     *        available options
      *
      * Result will be returned in a form of asynchronous signal gotDeviceOptions().
      */
@@ -61,14 +66,29 @@ public slots:
 
     /*!
      * \brief Starts asynchronous operation to get a list of available options for already
-     *        opened device.
+     *        opened device
      *
      * Result will be returned in a form of asynchronous signal gotDeviceOptions().
      */
     void getDeviceOptions();
 
-    void getOptionValue(QSemaphore*, int, vg_sane::opt_value_t*, std::exception_ptr*) const;
-    void setOptionValue(QSemaphore*, int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, std::exception_ptr*);
+    void getOptionValue(int, vg_sane::opt_value_t*, std::exception_ptr*) const;
+    void setOptionValue(int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, std::exception_ptr*);
+
+    /*!
+     * \brief start asynchronous scanning operation
+     *
+     * Acknoledgement will be in a form of scan parameters or an exception via scanningStartedOrNot slot
+     */
+    void startScanning();
+
+    /*!
+     * \brief cancel any previously started scanning process or finalizes normal scanning procedure;
+     *        can be called from any thread
+     */
+    void cancelScanning();
+
+    void readScanningData(unsigned wantBytes);
 
 private:
     vg_sane::lib::ptr_t m_saneLib;
@@ -77,6 +97,8 @@ private:
 signals:
     void gotDeviceInfos(DeviceInfosOrError);
     void gotDeviceOptions(DeviceOptionsOrError);
+    void scanningStartedOrNot(ScanParametersOrError);
+    void gotScanningData(ScanningDataOrError);
 };
 
 
@@ -239,8 +261,8 @@ signals:
     //
     void openDevice(std::string);
     void getDeviceOptions();
-    void getOptionValueSig(QSemaphore*, int, vg_sane::opt_value_t*, std::exception_ptr*) const;
-    void setOptionValueSig(QSemaphore*, int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, std::exception_ptr*);
+    void getOptionValueSig(int, vg_sane::opt_value_t*, std::exception_ptr*) const;
+    void setOptionValueSig(int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, std::exception_ptr*);
 
     // public signals
     //

@@ -116,6 +116,13 @@ void MainWindow::optionButtonPressed(const QModelIndex& index) {
     static_cast<DeviceOptionModel*>(ui->tableView_device_opts->model())->setData(index, true, Qt::EditRole);
 }
 
+
+void MainWindow::on_actionStart_triggered()
+{
+
+}
+
+//--------------------------------------------------------------------------------------------------
 void OptionItemDelegate::pressed(const QModelIndex& index) {
     if (index.column() == 1) {
         if (auto val = index.data(DeviceOptionModel::ButtonRole);

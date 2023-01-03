@@ -14,6 +14,7 @@
 #include <bitset>
 #include <variant>
 #include <functional>
+#include <algorithm>
 #include <ranges>
 
 #include "sane_wrapper_utils.h"
@@ -225,11 +226,78 @@ public:
     opt_value_t get_option(int pos) const;
     set_opt_result_t set_option(int pos, opt_value_t val);
 
+    void startScanning() {
+        m_eof = false;
+#ifdef SANE_PP_STUB
+        std::uint16_t sampleVal = 0x9249u;
+        for (int i = 0; i < 16; ++i) {
+            m_sampleImage.push_back((char)(sampleVal & 0xffu));
+            m_sampleImage.push_back((char)(sampleVal >> 8));
+            std::uint16_t hb = sampleVal & 1 ? 0x8000000 : 0;
+            sampleVal = (sampleVal >> 1) | hb;
+        }
+        m_sampleImageOffset = 0;
+#else
+        details::checked_call("unable to start scanning", &::sane_start, m_handle);
+#endif
+    }
+
+    void cancelScanning() {
+#ifdef SANE_PP_STUB
+#else
+        ::sane_cancel(m_handle);
+#endif
+    }
+
+    void getParameters(::SANE_Parameters& scanParams) const {
+#ifdef SANE_PP_STUB
+        // Let's define trivial 16x16 monochrome image with black/white pixels
+        scanParams.format = SANE_FRAME_GRAY;
+        scanParams.last_frame = SANE_TRUE;
+        scanParams.bytes_per_line = 2;
+        scanParams.pixels_per_line = 16;
+        scanParams.lines = 16;
+        scanParams.depth = 1;
+#else
+        details::checked_call("unable to get scan parameters", &::sane_get_parameters,
+            m_handle, &scanParams);
+#endif
+    }
+
+    /// Read blob of scanning data returning 0 only on end-of-stream
+    std::size_t readScanningData(std::span<char> storage) {
+        if (m_eof)
+            return 0;
+
+#ifdef SANE_PP_STUB
+        auto toRead = std::min(storage.size(), m_sampleImage.size() - m_sampleImageOffset);
+        std::copy(m_sampleImage.data() + m_sampleImageOffset,
+            m_sampleImage.data() + m_sampleImageOffset + toRead, storage.data());
+        m_sampleImageOffset += toRead;
+        if (toRead == 0)
+            m_eof = true;
+        return toRead;
+#else
+        ::SANE_Int len = 0;
+        ::SANE_Status status = ::sane_read(m_handle, storage.data(), storage.size(), &len);
+
+        if (status == SANE_STATUS_GOOD)
+            return static_cast<std::size_t>(len);
+        if (status == SANE_STATUS_CANCELLED || status == SANE_STATUS_EOF) {
+            m_eof = true;
+            return static_cast<std::size_t>(len);
+        }
+        throw error_with_code("unable to read next packet of data from scanner", status);
+#endif
+    }
+
 private:
     using deletion_cb_t = std::function<void(const std::string&)>;
 
 #ifdef SANE_PP_STUB
     mutable handle_t m_handle;
+    std::vector<char> m_sampleImage;
+    std::size_t m_sampleImageOffset;
 #else
     handle_t m_handle = {};
     // SANE library requires a storage to place an option data into
@@ -238,6 +306,7 @@ private:
     std::string m_name;
     deletion_cb_t m_deletion_cb; // locks the library singleton inside lambda, stored here
     mutable std::vector<const ::SANE_Option_Descriptor*> m_cached_option_infos;
+    bool m_eof = false;
 
     device(handle_t dev_handle, std::string name, deletion_cb_t deletion_cb)
         : m_handle{std::move(dev_handle)}

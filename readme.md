@@ -35,3 +35,7 @@ work in most cases but makes code better separated into different domains.
 5. Supporting runtime type checks/constraints in GUI is really laborious work - I understand why
 many similar projects have poor look-and-feel and bad internal state representation in GUI. Not sure
 I will have enough passion to move this one forward further then others.
+
+6. The more I implement the GUI as "simple usage of C++ wrapper" the more this GUI becomes much
+more complicated than C++ wrapper itself. The latter looks like just very simple piece of code which
+doesn't make any clever things.

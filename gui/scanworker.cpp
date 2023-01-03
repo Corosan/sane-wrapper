@@ -9,6 +9,8 @@ ScanWorker::ScanWorker()
     : m_saneLib(vg_sane::lib::instance()) {
     qRegisterMetaType<DeviceInfosOrError>();
     qRegisterMetaType<DeviceOptionsOrError>();
+    qRegisterMetaType<ScanParametersOrError>();
+    qRegisterMetaType<ScanningDataOrError>();
     qRegisterMetaType<std::string>();
 }
 
@@ -40,29 +42,52 @@ void ScanWorker::getDeviceOptions() {
     }
 }
 
-void ScanWorker::getOptionValue(QSemaphore* lock, int pos,
+void ScanWorker::getOptionValue(int pos,
     vg_sane::opt_value_t* val, std::exception_ptr* excPtr) const {
     try {
         *val = m_currentDevice.get_option(pos);
     } catch (...) {
         *excPtr = std::current_exception();
     }
-
-    lock->release();
 }
 
-void ScanWorker::setOptionValue(QSemaphore* lock, int pos,
+void ScanWorker::setOptionValue(int pos,
     vg_sane::opt_value_t* val, vg_sane::device::set_opt_result_t* opt_status, std::exception_ptr* excPtr) {
     try {
         *opt_status = m_currentDevice.set_option(pos, *val);
     } catch (...) {
         *excPtr = std::current_exception();
     }
-
-    lock->release();
 }
 
+void ScanWorker::startScanning() {
+    try {
+        m_currentDevice.startScanning();
 
+        ::SANE_Parameters scanParams{};
+        m_currentDevice.getParameters(scanParams);
+        emit scanningStartedOrNot(scanParams);
+    }  catch (...) {
+        emit scanningStartedOrNot(std::current_exception());
+    }
+}
+
+void ScanWorker::cancelScanning() {
+    m_currentDevice.cancelScanning();
+}
+
+void ScanWorker::readScanningData(unsigned wantBytes) {
+    try {
+        std::vector<char> buffer((std::size_t)wantBytes);
+        auto readBytes = m_currentDevice.readScanningData({buffer.begin(), buffer.end()});
+        buffer.resize(readBytes);
+        emit gotScanningData(std::move(buffer));
+    }  catch (...) {
+        emit gotScanningData(std::current_exception());
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 DeviceListModel::DeviceListModel(ScanWorker& worker, QObject* parent)
     : QAbstractListModel(parent) {
     Q_ASSERT(connect(this, &DeviceListModel::getDeviceInfos, &worker, &ScanWorker::getDeviceInfos));
@@ -136,8 +161,8 @@ DeviceOptionModel::DeviceOptionModel(ScanWorker& worker, QString name, QObject* 
 
     Q_ASSERT(connect(this, &DeviceOptionModel::openDevice, &worker, &ScanWorker::openDevice));
     Q_ASSERT(connect(this, &DeviceOptionModel::getDeviceOptions, &worker, &ScanWorker::getDeviceOptions));
-    Q_ASSERT(connect(this, &DeviceOptionModel::getOptionValueSig, &worker, &ScanWorker::getOptionValue));
-    Q_ASSERT(connect(this, &DeviceOptionModel::setOptionValueSig, &worker, &ScanWorker::setOptionValue));
+    Q_ASSERT(connect(this, &DeviceOptionModel::getOptionValueSig, &worker, &ScanWorker::getOptionValue, Qt::BlockingQueuedConnection));
+    Q_ASSERT(connect(this, &DeviceOptionModel::setOptionValueSig, &worker, &ScanWorker::setOptionValue, Qt::BlockingQueuedConnection));
     Q_ASSERT(connect(&worker, &ScanWorker::gotDeviceOptions, this, &DeviceOptionModel::gotDeviceOptions));
 
     m_updateInProgress = true;
@@ -170,11 +195,9 @@ void DeviceOptionModel::gotDeviceOptions(DeviceOptionsOrError result) {
 
 vg_sane::opt_value_t DeviceOptionModel::getOptionValue(
         const vg_sane::device::option_iterator::value_type& pos) const {
-    QSemaphore s;
     vg_sane::opt_value_t val;
     std::exception_ptr excPtr;
-    emit getOptionValueSig(&s, pos.first, &val, &excPtr);
-    s.acquire();
+    emit getOptionValueSig(pos.first, &val, &excPtr);
     if (excPtr) {
         auto propName = QString::fromLocal8Bit(pos.second->title ? pos.second->title : pos.second->name);
         try {
@@ -196,11 +219,9 @@ vg_sane::opt_value_t DeviceOptionModel::getOptionValue(
 }
 vg_sane::device::set_opt_result_t DeviceOptionModel::setOptionValue(
         const vg_sane::device::option_iterator::value_type& pos, vg_sane::opt_value_t val) {
-    QSemaphore s;
     vg_sane::device::set_opt_result_t status;
     std::exception_ptr excPtr;
-    emit setOptionValueSig(&s, pos.first, &val, &status, &excPtr);
-    s.acquire();
+    emit setOptionValueSig(pos.first, &val, &status, &excPtr);
     if (excPtr) {
         auto propName = QString::fromLocal8Bit(pos.second->title ? pos.second->title : pos.second->name);
         try {
