@@ -229,13 +229,39 @@ public:
     void startScanning() {
         m_eof = false;
 #ifdef SANE_PP_STUB
-        std::uint16_t sampleVal = 0x9249u;
-        for (int i = 0; i < 16; ++i) {
-            m_sampleImage.push_back((char)(sampleVal & 0xffu));
-            m_sampleImage.push_back((char)(sampleVal >> 8));
-            std::uint16_t hb = sampleVal & 1 ? 0x8000000 : 0;
-            sampleVal = (sampleVal >> 1) | hb;
-        }
+        m_sampleImage = {
+            0b11111111u, 0b11111111u, 0b11111111u, 0b11111111u,     // 1
+            0b10000000u, 0b00000000u, 0b00000000u, 0b00000001u,     // 2
+            0b10111111u, 0b11111111u, 0b11111111u, 0b11111101u,     // 3
+            0b10100000u, 0b00000000u, 0b00000000u, 0b00000101u,     // 4
+            0b10100000u, 0b00000000u, 0b00000000u, 0b11000101u,     // 5
+            0b10100000u, 0b00001111u, 0b11110001u, 0b10000101u,     // 6
+            0b10100000u, 0b00011111u, 0b11111000u, 0b00000101u,     // 7
+            0b10100000u, 0b00111000u, 0b00011100u, 0b00000101u,     // 8
+            0b10100000u, 0b01110000u, 0b00001110u, 0b00000101u,     // 9
+            0b10100000u, 0b11100000u, 0b00000111u, 0b00000101u,     // 10
+            0b10100000u, 0b11100000u, 0b00000111u, 0b00000101u,     // 11
+            0b10100000u, 0b11111111u, 0b11111111u, 0b00000101u,     // 12
+            0b10100000u, 0b11111111u, 0b11111111u, 0b00000101u,     // 13
+            0b10100000u, 0b11100000u, 0b00000111u, 0b00000101u,     // 14
+            0b10100000u, 0b11100000u, 0b00000111u, 0b00000101u,     // 15
+            0b10100000u, 0b11100000u, 0b00000111u, 0b00000101u,     // 16
+            0b10100000u, 0b01110000u, 0b00001110u, 0b00000101u,     // 17
+            0b10100000u, 0b00111000u, 0b00011100u, 0b00000101u,     // 18
+            0b10100000u, 0b00011111u, 0b11111000u, 0b00000101u,     // 19
+            0b10100000u, 0b00001111u, 0b11100000u, 0b00000101u,     // 20
+            0b10100000u, 0b00000011u, 0b11000000u, 0b00000101u,     // 21
+            0b10100000u, 0b00000001u, 0b10000000u, 0b00000101u,     // 22
+            0b10100000u, 0b00000001u, 0b10000000u, 0b00000101u,     // 23
+            0b10100000u, 0b00000011u, 0b11000000u, 0b00000101u,     // 24
+            0b10100000u, 0b00000111u, 0b11100000u, 0b00000101u,     // 25
+            0b10100000u, 0b00000000u, 0b01110000u, 0b00000101u,     // 26
+            0b10100000u, 0b00000000u, 0b00111000u, 0b00000101u,     // 27
+            0b10100000u, 0b00000000u, 0b00011000u, 0b00000101u,     // 28
+            0b10100000u, 0b00000000u, 0b00000000u, 0b00000101u,     // 29
+            0b10111111u, 0b11111111u, 0b11111111u, 0b11111101u,     // 30
+            0b10000000u, 0b00000000u, 0b00000000u, 0b00000001u,     // 31
+            0b11111111u, 0b11111111u, 0b11111111u, 0b11111111u};    // 32
         m_sampleImageOffset = 0;
 #else
         details::checked_call("unable to start scanning", &::sane_start, m_handle);
@@ -251,12 +277,12 @@ public:
 
     void getParameters(::SANE_Parameters& scanParams) const {
 #ifdef SANE_PP_STUB
-        // Let's define trivial 16x16 monochrome image with black/white pixels
+        // Let's define trivial 32x32 monochrome image with black/white pixels
         scanParams.format = SANE_FRAME_GRAY;
         scanParams.last_frame = SANE_TRUE;
-        scanParams.bytes_per_line = 2;
-        scanParams.pixels_per_line = 16;
-        scanParams.lines = 16;
+        scanParams.bytes_per_line = 4;
+        scanParams.pixels_per_line = 32;
+        scanParams.lines = 32;
         scanParams.depth = 1;
 #else
         details::checked_call("unable to get scan parameters", &::sane_get_parameters,
@@ -265,17 +291,20 @@ public:
     }
 
     /// Read blob of scanning data returning 0 only on end-of-stream
-    std::size_t readScanningData(std::span<char> storage) {
+    std::size_t readScanningData(std::span<unsigned char> storage) {
         if (m_eof)
             return 0;
 
 #ifdef SANE_PP_STUB
-        auto toRead = std::min(storage.size(), m_sampleImage.size() - m_sampleImageOffset);
+        using namespace std::chrono_literals;
+
+        auto toRead = std::min({storage.size(), m_sampleImage.size() - m_sampleImageOffset, (size_t)11});
         std::copy(m_sampleImage.data() + m_sampleImageOffset,
             m_sampleImage.data() + m_sampleImageOffset + toRead, storage.data());
         m_sampleImageOffset += toRead;
         if (toRead == 0)
             m_eof = true;
+        std::this_thread::sleep_for(500ms);
         return toRead;
 #else
         ::SANE_Int len = 0;
@@ -296,7 +325,7 @@ private:
 
 #ifdef SANE_PP_STUB
     mutable handle_t m_handle;
-    std::vector<char> m_sampleImage;
+    std::vector<unsigned char> m_sampleImage;
     std::size_t m_sampleImageOffset;
 #else
     handle_t m_handle = {};
@@ -328,8 +357,8 @@ inline device lib::open_device(const char* name) {
         throw error("already having device \"" + sname + "\" somewhere in the program");
 #ifdef SANE_PP_STUB
     if (std::strcmp(name, "dev 1") == 0) {
-        h = {std::make_shared<details::stub_option>("n0", "int sample", "", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT),
-             std::make_shared<details::stub_option>("n1", "int list sample", "", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT, 3),
+        h = {std::make_shared<details::stub_option>("n0", "int sample", "", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT, 1, SANE_UNIT_MM),
+             std::make_shared<details::stub_option>("n1", "int list sample", "", SANE_TYPE_INT, SANE_CAP_SOFT_SELECT, 3, SANE_UNIT_BIT),
              std::make_shared<details::stub_option>("n2", "fixed sample", "", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT),
              std::make_shared<details::stub_option>("n3", "fixed list sample", "", SANE_TYPE_FIXED, SANE_CAP_SOFT_SELECT, 3),
              std::make_shared<details::stub_option>("n4", "str", "", SANE_TYPE_STRING, SANE_CAP_SOFT_SELECT, 32),

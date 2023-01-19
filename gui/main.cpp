@@ -4,9 +4,15 @@
 #include <QLocale>
 #include <QTranslator>
 
+#include <QRect>
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    QRect r1(0, 0, -1, -1);
+    bool b1 = r1.isEmpty();
+    bool b2 = r1.isNull();
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();

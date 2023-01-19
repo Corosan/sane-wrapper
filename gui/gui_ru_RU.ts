@@ -4,33 +4,38 @@
 <context>
     <name>Capturer</name>
     <message>
-        <location filename="capturer.cpp" line="101"/>
+        <location filename="capturer.cpp" line="110"/>
         <source>%1:
 %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="104"/>
+        <location filename="capturer.cpp" line="113"/>
         <source>%1 - unknown error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="111"/>
+        <location filename="capturer.cpp" line="120"/>
         <source>Unable to start or continue scanning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="126"/>
+        <location filename="capturer.cpp" line="138"/>
         <source>Unable to start or continue capturing of scanning data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="132"/>
+        <location filename="capturer.cpp" line="144"/>
         <source>Unexpected error during getting scanning data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="152"/>
+        <location filename="capturer.cpp" line="153"/>
+        <source>Operation cancelled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="capturer.cpp" line="174"/>
         <source>Unable to feed data from a scanner</source>
         <translation type="unfinished"></translation>
     </message>
@@ -38,13 +43,13 @@
 <context>
     <name>DeviceListModel</name>
     <message>
-        <location filename="scanworker.cpp" line="115"/>
+        <location filename="scanworker.cpp" line="126"/>
         <source>Unexpected error on getting devices list:
 %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="117"/>
+        <location filename="scanworker.cpp" line="128"/>
         <source>Unknown error on getting devices list</source>
         <translation type="unfinished"></translation>
     </message>
@@ -52,92 +57,92 @@
 <context>
     <name>DeviceOptionModel</name>
     <message>
-        <location filename="scanworker.cpp" line="183"/>
+        <location filename="scanworker.cpp" line="195"/>
         <source>Unexpected error on getting device options list:
 %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="185"/>
+        <location filename="scanworker.cpp" line="197"/>
         <source>Unknown error on getting device options list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="208"/>
+        <location filename="scanworker.cpp" line="221"/>
         <source>Unexpected error on getting an option &quot;%1&quot; (stop reading others):
 %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="213"/>
+        <location filename="scanworker.cpp" line="226"/>
         <source>Unknown error on getting an option &quot;%1&quot; (stop reading others)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="231"/>
+        <location filename="scanworker.cpp" line="245"/>
         <source>Unexpected error on setting an option &quot;%1&quot;:
 %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="235"/>
+        <location filename="scanworker.cpp" line="249"/>
         <source>Unknown error on setting an option &quot;%1&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="317"/>
+        <location filename="scanworker.cpp" line="386"/>
         <source>min value: -32768, max value: 32767.9999</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="319"/>
-        <location filename="scanworker.cpp" line="345"/>
+        <location filename="scanworker.cpp" line="388"/>
+        <location filename="scanworker.cpp" line="414"/>
         <source>min value: %1, max value: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="323"/>
-        <location filename="scanworker.cpp" line="349"/>
+        <location filename="scanworker.cpp" line="392"/>
+        <location filename="scanworker.cpp" line="418"/>
         <source>, step: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="388"/>
+        <location filename="scanworker.cpp" line="333"/>
         <source>px</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="389"/>
+        <location filename="scanworker.cpp" line="334"/>
         <source>bit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="390"/>
+        <location filename="scanworker.cpp" line="335"/>
         <source>mm</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="391"/>
+        <location filename="scanworker.cpp" line="336"/>
         <source>dpi</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="393"/>
+        <location filename="scanworker.cpp" line="338"/>
         <source>us</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="237"/>
+        <location filename="scanworker.h" line="238"/>
         <source>Property</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="238"/>
+        <location filename="scanworker.h" line="239"/>
         <source>Value</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="239"/>
+        <location filename="scanworker.h" line="240"/>
         <source>Unit</source>
         <translation type="unfinished"></translation>
     </message>
@@ -150,48 +155,69 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="54"/>
+        <location filename="mainwindow.ui" line="110"/>
         <source>Capture</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="74"/>
+        <location filename="mainwindow.ui" line="130"/>
         <source>Device</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="102"/>
+        <location filename="mainwindow.ui" line="158"/>
         <source>Vendor:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="119"/>
+        <location filename="mainwindow.ui" line="175"/>
         <source>Model:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="136"/>
+        <location filename="mainwindow.ui" line="192"/>
         <source>Type:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="155"/>
+        <location filename="mainwindow.ui" line="211"/>
         <source>Parameters</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="173"/>
+        <location filename="mainwindow.ui" line="229"/>
+        <source>toolBar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mainwindow.ui" line="245"/>
         <source>Start</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="178"/>
+        <location filename="mainwindow.ui" line="253"/>
         <source>Stop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="67"/>
-        <location filename="mainwindow.cpp" line="74"/>
+        <location filename="mainwindow.ui" line="258"/>
+        <source>ZoomIn</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mainwindow.ui" line="263"/>
+        <source>ZoomOut</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="65"/>
+        <source>scale: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="76"/>
+        <location filename="mainwindow.cpp" line="83"/>
+        <location filename="mainwindow.cpp" line="159"/>
         <source> - error</source>
         <translation type="unfinished"></translation>
     </message>

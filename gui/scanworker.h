@@ -30,7 +30,7 @@ using DeviceOptionsOrError = std::variant<
     std::exception_ptr>;
 
 using ScanParametersOrError = std::variant<::SANE_Parameters, std::exception_ptr>;
-using ScanningDataOrError = std::variant<std::vector<char>, std::exception_ptr>;
+using ScanningDataOrError = std::variant<std::vector<unsigned char>, std::exception_ptr>;
 
 Q_DECLARE_METATYPE(DeviceInfosOrError)
 Q_DECLARE_METATYPE(DeviceOptionsOrError)
@@ -93,6 +93,7 @@ public slots:
 private:
     vg_sane::lib::ptr_t m_saneLib;
     vg_sane::device m_currentDevice;
+    std::size_t m_readBytesTotal;
 
 signals:
     void gotDeviceInfos(DeviceInfosOrError);
@@ -242,8 +243,12 @@ public:
 
     Qt::ItemFlags flags(const QModelIndex &index) const override;
 
+    void enable(bool val);
+
 private:
     mutable bool m_isValid = true;
+    bool m_isEnabled = true;
+    mutable QVector<QVariant> m_cachedValues;
 
     struct StopGetOptError {};
 
@@ -252,6 +257,8 @@ private:
     vg_sane::opt_value_t getOptionValue(const vg_sane::device::option_iterator::value_type& pos) const;
     vg_sane::device::set_opt_result_t setOptionValue(
         const vg_sane::device::option_iterator::value_type& pos, vg_sane::opt_value_t val);
+
+    QVariant getDataValue(const QModelIndex &index, int role) const;
 
 private slots:
     void gotDeviceOptions(DeviceOptionsOrError);

@@ -4,19 +4,19 @@
 
 #include <QMainWindow>
 #include <QThread>
+#include <QLabel>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
 #include <QStyledItemDelegate>
 #include <QItemEditorFactory>
-
-#include <QtGlobal>
-#include <QDebug>
 
 #include <string>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+class Capturer;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -30,17 +30,23 @@ private slots:
     void deviceInfoUpdateFinished(bool, QString);
     void deviceOptionsUpdateFinished(bool, QString);
     void optionButtonPressed(const QModelIndex&);
+    void scannedImageGot(bool, QString);
+    void drawingScaleChanged(float);
 
     void on_btnReloadDevs_clicked();
     void on_comboBox_devices_currentIndexChanged(int index);
-
     void on_actionStart_triggered();
+    void on_actionZoomIn_triggered();
+    void on_actionZoomOut_triggered();
+    void on_actionStop_triggered();
 
 private:
     Ui::MainWindow *ui;
+    QLabel* m_scaleStatusLabel;
     QThread m_scanThread;
     ScanWorker* m_scanWorker;
-    bool m_optionTableResizedFirstTime;
+    Capturer* m_imageCapturer = nullptr;
+    bool m_optionTableResizedFirstTime = false;
 };
 
 class OptionItemDelegate : public QStyledItemDelegate {

@@ -22,7 +22,7 @@ struct stub_option {
     std::vector<::SANE_Word> m_int_list_constraint;
     ::SANE_Range m_int_range;
 
-    stub_option(std::string name, std::string title, std::string descr, ::SANE_Value_Type type, ::SANE_Int cap, std::size_t size = 1)
+    stub_option(std::string name, std::string title, std::string descr, ::SANE_Value_Type type, ::SANE_Int cap, std::size_t size = 1, ::SANE_Unit unit = {})
         : m_d{}
         , m_name(std::move(name))
         , m_title(std::move(title))
@@ -32,6 +32,7 @@ struct stub_option {
         m_d.desc = m_descr.c_str();
         m_d.type = type;
         m_d.cap = cap;
+        m_d.unit = unit;
         switch (type) {
         case ::SANE_TYPE_BOOL: m_d.size = sizeof(::SANE_Word); break;
         case ::SANE_TYPE_INT:

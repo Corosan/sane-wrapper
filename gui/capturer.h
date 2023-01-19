@@ -1,6 +1,7 @@
 #pragma once
 
 #include "scanworker.h"
+#include "drawingsurface.h"
 
 #include <QObject>
 #include <QString>
@@ -9,6 +10,9 @@
 
 #include <memory>
 
+/*!
+ * \brief An abstract interface for image builders supporting various image formats
+ */
 struct IImageBuilder {
     virtual ~IImageBuilder() = default;
     /*!
@@ -20,8 +24,8 @@ struct IImageBuilder {
      * unexpected.
      */
     virtual void newFrame(const ::SANE_Parameters& params) = 0;
-    virtual QRect feedData(std::span<const char> data) = 0;
-    virtual const QImage& getImage() const = 0;
+    virtual void feedData(std::span<const unsigned char> data) = 0;
+    virtual unsigned short getFinalHeight() = 0;
 };
 
 /*!
@@ -33,15 +37,17 @@ class Capturer : public QObject
 {
     Q_OBJECT
 public:
-    explicit Capturer(ScanWorker& scanWorker, QObject *parent = nullptr);
+    explicit Capturer(ScanWorker& scanWorker, IImageHolder& imageHolder, QObject *parent = nullptr);
     ~Capturer();
 
 private:
-    static constexpr unsigned s_defaultReadAmount = 1024;
+    static constexpr unsigned s_defaultReadAmount = 1024*1024;
 
     ScanWorker& m_scanWorker;
+    IImageHolder& m_imageHolder;
     std::unique_ptr<IImageBuilder> m_imageBuilder;
     bool m_isLastFrame;
+    bool m_cancellingStarted;
 
     template<typename F, typename ...Args>
     void wrappedCall(F&& f, QString msg, Args&& ... args);
@@ -57,8 +63,7 @@ public slots:
 signals:
     // Public signals
     //
-    void pieceOfUpdate(const QImage*, QRect);
-    void finished(bool, const QImage*, QString);
+    void finished(bool, QString);
 
     // private signals
     //

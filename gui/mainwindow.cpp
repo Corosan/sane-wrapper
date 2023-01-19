@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include "drawingsurface.h"
+#include "capturer.h"
 
 #include <QMetaType>
 #include <QApplication>
@@ -19,9 +20,12 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
-    , m_optionTableResizedFirstTime(false) {
+    , ui(new Ui::MainWindow) {
     ui->setupUi(this);
+    ui->statusbar->addWidget((m_scaleStatusLabel = new QLabel(ui->statusbar)), 0);
+
+    Q_ASSERT(connect(ui->scrollAreaWidgetContents, &DrawingSurface::scaleChanged, this, &MainWindow::drawingScaleChanged));
+    drawingScaleChanged(ui->scrollAreaWidgetContents->getScale());
 
     m_scanThread.setObjectName("scan_thread");
 
@@ -50,10 +54,15 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
+    delete m_imageCapturer;
     m_scanThread.requestInterruption();
     m_scanThread.quit();
     m_scanThread.wait();
     delete ui;
+}
+
+void MainWindow::drawingScaleChanged(float scale) {
+    m_scaleStatusLabel->setText(tr("scale: %1").arg(scale));
 }
 
 void MainWindow::on_btnReloadDevs_clicked() {
@@ -62,15 +71,15 @@ void MainWindow::on_btnReloadDevs_clicked() {
     static_cast<DeviceListModel*>(ui->comboBox_devices->model())->update();
 }
 
-void MainWindow::deviceInfoUpdateFinished(bool res, QString error) {
-    if (! res)
+void MainWindow::deviceInfoUpdateFinished(bool status, QString error) {
+    if (! status)
         QMessageBox::critical(this, this->windowTitle() + tr(" - error"), error);
 
     ui->btnReloadDevs->setEnabled(true);
 }
 
-void MainWindow::deviceOptionsUpdateFinished(bool res, QString error) {
-    if (! res)
+void MainWindow::deviceOptionsUpdateFinished(bool status, QString error) {
+    if (! status)
         QMessageBox::critical(this, this->windowTitle() + tr(" - error"), error);
     else if (! m_optionTableResizedFirstTime) {
         ui->tableView_device_opts->resizeColumnsToContents();
@@ -93,6 +102,7 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
         ui->label_dev_model->clear();
         ui->label_dev_type->clear();
         ui->label_dev_vendor->clear();
+        ui->actionStart->setEnabled(false);
     } else {
         auto m = static_cast<DeviceListModel*>(ui->comboBox_devices->model());
         ui->label_dev_model->setText(m->data(m->index(index), DeviceListModel::DeviceModelRole).toString());
@@ -107,6 +117,8 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
 
         Q_ASSERT(connect(deviceOptionModel, &DeviceOptionModel::deviceOptionsUpdated,
             this, &MainWindow::deviceOptionsUpdateFinished));
+
+        ui->actionStart->setEnabled(true);
     }
 }
 
@@ -117,9 +129,43 @@ void MainWindow::optionButtonPressed(const QModelIndex& index) {
 }
 
 
-void MainWindow::on_actionStart_triggered()
-{
+void MainWindow::on_actionStart_triggered() {
+    m_imageCapturer = new Capturer(*m_scanWorker, *ui->scrollAreaWidgetContents);
+    Q_ASSERT(connect(m_imageCapturer, &Capturer::finished, this, &MainWindow::scannedImageGot));
 
+    // TODO: it should be less direct code for changing GUI state related to current operation
+    ui->actionStop->setEnabled(true);
+    static_cast<DeviceOptionModel*>(ui->tableView_device_opts->model())->enable(false);
+    ui->comboBox_devices->setEnabled(false);
+    ui->btnReloadDevs->setEnabled(false);
+
+    m_imageCapturer->start();
+}
+
+void MainWindow::on_actionStop_triggered() {
+    m_imageCapturer->abort();
+}
+
+void MainWindow::scannedImageGot(bool status, QString errMsg) {
+    delete m_imageCapturer;
+    m_imageCapturer = nullptr;
+
+    ui->actionStop->setEnabled(false);
+    static_cast<DeviceOptionModel*>(ui->tableView_device_opts->model())->enable(true);
+    ui->comboBox_devices->setEnabled(true);
+    ui->btnReloadDevs->setEnabled(true);
+
+    if (! status)
+        QMessageBox::critical(this, this->windowTitle() + tr(" - error"), errMsg);    
+}
+
+void MainWindow::on_actionZoomIn_triggered() {
+    ui->scrollAreaWidgetContents->setScale(ui->scrollAreaWidgetContents->getScale() * 2);
+}
+
+
+void MainWindow::on_actionZoomOut_triggered() {
+    ui->scrollAreaWidgetContents->setScale(ui->scrollAreaWidgetContents->getScale() / 2);
 }
 
 //--------------------------------------------------------------------------------------------------
