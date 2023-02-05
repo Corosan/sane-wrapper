@@ -6,6 +6,7 @@
 
 #include <QMetaType>
 #include <QApplication>
+#include <QScopedPointer>
 #include <QMessageBox>
 #include <QComboBox>
 #include <QSpinBox>
@@ -18,25 +19,18 @@
 #include <cmath>
 #include <memory>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow) {
+    , ui(new Ui::MainWindow)
+    , m_saneLibWrapperPtr{saneLibWrapper} {
     ui->setupUi(this);
     ui->statusbar->addWidget((m_scaleStatusLabel = new QLabel(ui->statusbar)), 0);
 
     Q_ASSERT(connect(ui->scrollAreaWidgetContents, &DrawingSurface::scaleChanged, this, &MainWindow::drawingScaleChanged));
     drawingScaleChanged(ui->scrollAreaWidgetContents->getScale());
 
-    m_scanThread.setObjectName("scan_thread");
-
-    m_scanWorker = new ScanWorker;
-    m_scanWorker->moveToThread(&m_scanThread);
-    Q_ASSERT(connect(&m_scanThread, &QThread::finished, m_scanWorker, &QObject::deleteLater));
-
-    auto deviceListModel = new DeviceListModel(*m_scanWorker, this);
+    auto deviceListModel = new DeviceListModel(m_saneLibWrapperPtr, this);
     ui->comboBox_devices->setModel(deviceListModel);
-    Q_ASSERT(connect(deviceListModel, &DeviceListModel::modelReset, this, &MainWindow::deviceInfoModelReset));
-    Q_ASSERT(connect(deviceListModel, &DeviceListModel::updateFinished, this, &MainWindow::deviceInfoUpdateFinished));
 
     auto oldDelegate = ui->tableView_device_opts->itemDelegate();
     auto delgt = new OptionItemDelegate(this);
@@ -49,52 +43,33 @@ MainWindow::MainWindow(QWidget *parent)
     Q_ASSERT(connect(delgt, &OptionItemDelegate::buttonPressed, this, &MainWindow::optionButtonPressed));
 
     delete oldDelegate;
-
-    m_scanThread.start();
 }
 
 MainWindow::~MainWindow() {
-    delete m_imageCapturer;
-    m_scanThread.requestInterruption();
-    m_scanThread.quit();
-    m_scanThread.wait();
     delete ui;
 }
 
-void MainWindow::drawingScaleChanged(float scale) {
-    m_scaleStatusLabel->setText(tr("scale: %1").arg(scale));
-}
-
 void MainWindow::on_btnReloadDevs_clicked() {
-    ui->btnReloadDevs->setEnabled(false);
-    ui->tableView_device_opts->setEnabled(false);
-    static_cast<DeviceListModel*>(ui->comboBox_devices->model())->update();
-}
+    auto model = static_cast<DeviceListModel*>(ui->comboBox_devices->model());
 
-void MainWindow::deviceInfoUpdateFinished(bool status, QString error) {
-    if (! status)
-        QMessageBox::critical(this, this->windowTitle() + tr(" - error"), error);
-
-    ui->btnReloadDevs->setEnabled(true);
-}
-
-void MainWindow::deviceOptionsUpdateFinished(bool status, QString error) {
-    if (! status)
-        QMessageBox::critical(this, this->windowTitle() + tr(" - error"), error);
-    else if (! m_optionTableResizedFirstTime) {
-        ui->tableView_device_opts->resizeColumnsToContents();
-        m_optionTableResizedFirstTime = true;
+    try {
+        model->update();
+    } catch (const std::exception& e) {
+        QMessageBox::critical(this, this->windowTitle(),
+            tr("Unable to update a list of devices: %1").arg(QString::fromLocal8Bit(e.what())));
+    } catch (...) {
+        QMessageBox::critical(this, this->windowTitle(),
+            tr("Unable to update a list of devices, no additional info"));
     }
-}
 
-void MainWindow::deviceInfoModelReset() {
-    auto m = static_cast<DeviceListModel*>(ui->comboBox_devices->model());
-    if (m->rowCount(QModelIndex()) == 0)
+    if (model->rowCount({}) == 0) {
         // zero-sized model should cause combobox's index to reset to -1 and corresponding [indexChanged]
         // signal to be called... but it isn't. Let's call it directly
         on_comboBox_devices_currentIndexChanged(-1);
-    else
+        ui->tableView_device_opts->setEnabled(false);
+    } else {
         ui->tableView_device_opts->setEnabled(true);
+    }
 }
 
 void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
@@ -102,24 +77,72 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
         ui->label_dev_model->clear();
         ui->label_dev_type->clear();
         ui->label_dev_vendor->clear();
+        ui->label_cap_model->setEnabled(false);
+        ui->label_cap_type->setEnabled(false);
+        ui->label_cap_vendor->setEnabled(false);
         ui->actionStart->setEnabled(false);
     } else {
+        ui->label_cap_model->setEnabled(true);
+        ui->label_cap_type->setEnabled(true);
+        ui->label_cap_vendor->setEnabled(true);
+
         auto m = static_cast<DeviceListModel*>(ui->comboBox_devices->model());
         ui->label_dev_model->setText(m->data(m->index(index), DeviceListModel::DeviceModelRole).toString());
         ui->label_dev_type->setText(m->data(m->index(index), DeviceListModel::DeviceTypeRole).toString());
         ui->label_dev_vendor->setText(m->data(m->index(index), DeviceListModel::DeviceVendorRole).toString());
 
+        // As long as old Device Option Model can be tied to current scanner device, firstly the model
+        // should be destroyed and then - the device released.
         auto oldModel = ui->tableView_device_opts->model();
-        auto deviceOptionModel = new DeviceOptionModel(
-            *m_scanWorker, m->data(m->index(index), Qt::DisplayRole).toString(), this);
-        ui->tableView_device_opts->setModel(deviceOptionModel);
+        ui->tableView_device_opts->setModel(nullptr);
         delete oldModel;
 
-        Q_ASSERT(connect(deviceOptionModel, &DeviceOptionModel::deviceOptionsUpdated,
-            this, &MainWindow::deviceOptionsUpdateFinished));
+        m_scannerDevice = {};
 
-        ui->actionStart->setEnabled(true);
+        bool fullyInitializedDevice = true;
+        try {
+            m_scannerDevice = m->openDevice(index);
+        } catch (const std::exception& e) {
+            fullyInitializedDevice = false;
+            QMessageBox::critical(this, this->windowTitle(),
+                tr("Unable to open device \"%1\": %2")
+                    .arg(ui->comboBox_devices->itemText(index)).arg(QString::fromLocal8Bit(e.what())));
+        } catch (...) {
+            fullyInitializedDevice = false;
+            QMessageBox::critical(this, this->windowTitle(),
+                tr("Unable to open device \"%1\", no additional info")
+                    .arg(ui->comboBox_devices->itemText(index)));
+        }
+
+        QScopedPointer<DeviceOptionModel> modelPtr;
+        try {
+            modelPtr.reset(new DeviceOptionModel(m_scannerDevice, this));
+            Q_ASSERT(connect(modelPtr.get(), &DeviceOptionModel::error, this, &MainWindow::optionModelError));
+        } catch (const std::exception& e) {
+            fullyInitializedDevice = false;
+            QMessageBox::critical(this, this->windowTitle(),
+                tr("Unable to observe device \"%1\" options: %2")
+                    .arg(ui->comboBox_devices->itemText(index)).arg(QString::fromLocal8Bit(e.what())));
+        } catch (...) {
+            fullyInitializedDevice = false;
+            QMessageBox::critical(this, this->windowTitle(),
+                tr("Unable to observe device \"%1\" options, no additional info")
+                    .arg(ui->comboBox_devices->itemText(index)));
+        }
+
+        ui->tableView_device_opts->setModel(modelPtr.take());
+
+        if (fullyInitializedDevice)
+            ui->tableView_device_opts->resizeColumnsToContents();
+
+        ui->actionStart->setEnabled(fullyInitializedDevice);
     }
+}
+
+void MainWindow::optionModelError(QString msg) {
+    QMessageBox::critical(this, this->windowTitle(),
+        tr("Error happened while changing scanner options. Try to re-open the device. "
+           "Additional details:\n%1").arg(msg));
 }
 
 void MainWindow::optionButtonPressed(const QModelIndex& index) {
@@ -128,35 +151,34 @@ void MainWindow::optionButtonPressed(const QModelIndex& index) {
     static_cast<DeviceOptionModel*>(ui->tableView_device_opts->model())->setData(index, true, Qt::EditRole);
 }
 
-
 void MainWindow::on_actionStart_triggered() {
-    m_imageCapturer = new Capturer(*m_scanWorker, *ui->scrollAreaWidgetContents);
-    Q_ASSERT(connect(m_imageCapturer, &Capturer::finished, this, &MainWindow::scannedImageGot));
+    m_imageCapturer.reset(new Capturer(m_scannerDevice, *ui->scrollAreaWidgetContents));
+    Q_ASSERT(connect(m_imageCapturer.get(), &Capturer::finished, this, &MainWindow::scannedImageGot));
 
-    // TODO: it should be less direct code for changing GUI state related to current operation
-    ui->actionStop->setEnabled(true);
     static_cast<DeviceOptionModel*>(ui->tableView_device_opts->model())->enable(false);
     ui->comboBox_devices->setEnabled(false);
     ui->btnReloadDevs->setEnabled(false);
+    ui->actionStop->setEnabled(true);
+    ui->actionStart->setEnabled(false);
 
     m_imageCapturer->start();
 }
 
 void MainWindow::on_actionStop_triggered() {
-    m_imageCapturer->abort();
+    m_imageCapturer->cancel();
 }
 
 void MainWindow::scannedImageGot(bool status, QString errMsg) {
-    delete m_imageCapturer;
-    m_imageCapturer = nullptr;
+    m_imageCapturer.reset();
 
-    ui->actionStop->setEnabled(false);
     static_cast<DeviceOptionModel*>(ui->tableView_device_opts->model())->enable(true);
     ui->comboBox_devices->setEnabled(true);
     ui->btnReloadDevs->setEnabled(true);
+    ui->actionStop->setEnabled(false);
+    ui->actionStart->setEnabled(true);
 
     if (! status)
-        QMessageBox::critical(this, this->windowTitle() + tr(" - error"), errMsg);    
+        QMessageBox::critical(this, this->windowTitle() + tr(" - error"), errMsg);
 }
 
 void MainWindow::on_actionZoomIn_triggered() {
@@ -166,6 +188,10 @@ void MainWindow::on_actionZoomIn_triggered() {
 
 void MainWindow::on_actionZoomOut_triggered() {
     ui->scrollAreaWidgetContents->setScale(ui->scrollAreaWidgetContents->getScale() / 2);
+}
+
+void MainWindow::drawingScaleChanged(float scale) {
+    m_scaleStatusLabel->setText(tr("scale: %1").arg(scale));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -191,7 +217,6 @@ void OptionItemDelegate::clicked(const QModelIndex& index) {
 
 void OptionItemDelegate::paint(QPainter *painter,
     const QStyleOptionViewItem &option, const QModelIndex &index) const {
-
     if (index.column() == 1) {
         if (auto val = index.data(DeviceOptionModel::ButtonRole);
             val.type() == qMetaTypeId<bool>()

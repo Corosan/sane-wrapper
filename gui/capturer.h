@@ -1,14 +1,14 @@
 #pragma once
 
-#include "scanworker.h"
 #include "drawingsurface.h"
+
+#include <sane_wrapper.h>
 
 #include <QObject>
 #include <QString>
-#include <QImage>
-#include <QRect>
+#include <QScopedPointer>
 
-#include <memory>
+#include <exception>
 
 /*!
  * \brief An abstract interface for image builders supporting various image formats
@@ -37,37 +37,44 @@ class Capturer : public QObject
 {
     Q_OBJECT
 public:
-    explicit Capturer(ScanWorker& scanWorker, IImageHolder& imageHolder, QObject *parent = nullptr);
+    explicit Capturer(vg_sane::device& device, IImageHolder& imageHolder, QObject *parent = nullptr);
     ~Capturer();
 
 private:
-    static constexpr unsigned s_defaultReadAmount = 1024*1024;
+    // Unable to use fast cancelling (direct call to ::sane_cancel) for some reason -
+    // my SANE library crashes after this.
+    static constexpr bool s_useFastCancelling = false;
 
-    ScanWorker& m_scanWorker;
+    vg_sane::device& m_scannerDevice;
     IImageHolder& m_imageHolder;
-    std::unique_ptr<IImageBuilder> m_imageBuilder;
+    QScopedPointer<IImageBuilder> m_imageBuilder;
+    std::exception_ptr m_lastError;
+    QString m_lastErrorContext;
+    bool m_isWaitingForScanningParameters;
     bool m_isLastFrame;
-    bool m_cancellingStarted;
+    bool m_isCancellingRequested;
 
     template<typename F, typename ...Args>
     void wrappedCall(F&& f, QString msg, Args&& ... args);
 
-private slots:
-    void scanningStartedOrNot(ScanParametersOrError);
-    void gotScanningData(ScanningDataOrError);
+    bool event(QEvent* ev) override;
+
+    void startInner();
+    void processScanningParameters();
+    void processImageData();
 
 public slots:
     void start();
-    void abort();
+    void cancel();
 
 signals:
     // Public signals
     //
     void finished(bool, QString);
 
-    // private signals
-    //
-    void startSig();
-    void cancelSig();
-    void readSig(unsigned);
+//    // private signals
+//    //
+//    void startSig();
+//    void cancelSig();
+//    void readSig(unsigned);
 };

@@ -36,6 +36,10 @@ work in most cases but makes code better separated into different domains.
 many similar projects have poor look-and-feel and bad internal state representation in GUI. Not sure
 I will have enough passion to move this one forward further then others.
 
-6. The more I implement the GUI as "simple usage of C++ wrapper" the more this GUI becomes much
-more complicated than C++ wrapper itself. The latter looks like just very simple piece of code which
-doesn't make any clever things.
+6. The more I implement the GUI as "simple usage of C++ wrapper" the more this GUI becomes much more
+complicated than C++ wrapper itself. The latter looks like just very simple piece of code which
+doesn't make any clever things. Recently I've found that I've complicated GUI/worker threads
+interaction too much - most of Qt's signal stuff can be thrown away. But anyway GUI tends to be much
+more complicated than a scanner wrapper library. I've re-designed all operations except scanning to
+be considered as atomic and don't require to be running in the worker thread. And the scanning is
+implemented asynchronously right inside the wrapper library.

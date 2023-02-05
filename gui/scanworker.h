@@ -1,129 +1,22 @@
 #pragma once
 
 #include <QObject>
-#include <QThread>
 #include <QString>
 #include <QStringList>
-#include <QVector>
-#include <QModelIndex>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
 
-#include <QtGlobal>
-#include <QDebug>
+#include <sane_wrapper.h>
 
-#include <sane-pp.h>
-
-#include <string>
-#include <vector>
-#include <variant>
-#include <exception>
-
-// Additional types and registrations used for communicating with ScanWorker object
-//
-using DeviceInfosOrError = std::variant<
-    std::ranges::subrange<const ::SANE_Device**, const ::SANE_Device**>,
-    std::exception_ptr>;
-
-using DeviceOptionsOrError = std::variant<
-    std::ranges::subrange<vg_sane::device::option_iterator>,
-    std::exception_ptr>;
-
-using ScanParametersOrError = std::variant<::SANE_Parameters, std::exception_ptr>;
-using ScanningDataOrError = std::variant<std::vector<unsigned char>, std::exception_ptr>;
-
-Q_DECLARE_METATYPE(DeviceInfosOrError)
-Q_DECLARE_METATYPE(DeviceOptionsOrError)
-Q_DECLARE_METATYPE(ScanParametersOrError)
-Q_DECLARE_METATYPE(ScanningDataOrError)
-Q_DECLARE_METATYPE(std::string)
-
-/*!
-   \brief The Scanner bounary communication object working in separate thread. All the interaction
-          with SANE library is done in that thread.
- */
-class ScanWorker : public QObject {
-    Q_OBJECT
-
-public:
-    ScanWorker();
-
-public slots:
-    /*!
-     * \brief Starts asynchronous operation to get a list of available devices
-     *
-     * Result will be returned in a form of asynchronous signal gotDeviceInfos().
-     */
-    void getDeviceInfos();
-
-    /*!
-     * \brief Starts asynchronous operation to open specified device and get a list of its
-     *        available options
-     *
-     * Result will be returned in a form of asynchronous signal gotDeviceOptions().
-     */
-    void openDevice(std::string);
-
-    /*!
-     * \brief Starts asynchronous operation to get a list of available options for already
-     *        opened device
-     *
-     * Result will be returned in a form of asynchronous signal gotDeviceOptions().
-     */
-    void getDeviceOptions();
-
-    void getOptionValue(int, vg_sane::opt_value_t*, std::exception_ptr*) const;
-    void setOptionValue(int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, std::exception_ptr*);
-
-    /*!
-     * \brief start asynchronous scanning operation
-     *
-     * Acknoledgement will be in a form of scan parameters or an exception via scanningStartedOrNot slot
-     */
-    void startScanning();
-
-    /*!
-     * \brief cancel any previously started scanning process or finalizes normal scanning procedure;
-     *        can be called from any thread
-     */
-    void cancelScanning();
-
-    void readScanningData(unsigned wantBytes);
-
-private:
-    vg_sane::lib::ptr_t m_saneLib;
-    vg_sane::device m_currentDevice;
-    std::size_t m_readBytesTotal;
-
-signals:
-    void gotDeviceInfos(DeviceInfosOrError);
-    void gotDeviceOptions(DeviceOptionsOrError);
-    void scanningStartedOrNot(ScanParametersOrError);
-    void gotScanningData(ScanningDataOrError);
-};
-
-
-// Design choice: should we provide the only interface via this model to communicate with the
-// worker? Or it should be freely accessed outside this model?
 /*!
    \brief The The Model part of Model/View Framework representing all available devices connected to
           the machine this program is running on.
+
+   The class can generate exceptions from non-Qt methods which request data from underlying SANE
+   wrapper library.
  */
 class DeviceListModel : public QAbstractListModel {
     Q_OBJECT
-
-    struct DeviceInfo {
-        QString m_name;
-        QString m_type;
-        QString m_model;
-        QString m_vendor;
-    };
-
-    // Design choice: we could use a range from underlying library instead of storing copies
-    // of description strings here in a vector but still need to convert strings into
-    // Qt-aware types every time data is requested.
-    QVector<DeviceInfo> m_infos;
-    bool m_updateInProgress = false;
 
 public:
     enum DeviceInfoRole {
@@ -132,32 +25,20 @@ public:
         DeviceVendorRole = Qt::UserRole + 2
     };
 
-    explicit DeviceListModel(ScanWorker& worker, QObject* parent = nullptr);
+    explicit DeviceListModel(vg_sane::lib::ptr_t lib_ptr, QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex &parent) const override {
-        return parent == QModelIndex() ? m_infos.size() : 0;
-    }
-
+    int rowCount(const QModelIndex &parent) const override;
     QVariant data(const QModelIndex &index, int role) const override;
 
-private slots:
-    void gotDeviceInfos(DeviceInfosOrError);
-
-public slots:
-    /*!
-       \brief starts asynchronous updating procedure. At the end a signal updateFinished() is raise
-              with status and optional error string.
-     */
     void update();
+    vg_sane::device openDevice(int index) const;
 
-signals:
-    // private signals
-    //
-    void getDeviceInfos();
+private:
+    vg_sane::lib::ptr_t m_lib;
 
-    // public signals
-    //
-    void updateFinished(bool, QString);
+    // This is a range of device infos actually stored in a SANE library's memory. The range
+    // is valid until the library is not unloaded and until new range is requested from it.
+    vg_sane::devices_t m_scannerInfos;
 };
 
 // Additional types and registrations used for communicating with ScanWorker object
@@ -194,9 +75,7 @@ Q_DECLARE_METATYPE(double_data_list_constraint)
 class DeviceOptionModel : public QAbstractTableModel {
     Q_OBJECT
 
-    ScanWorker& m_worker;
-    std::ranges::subrange<vg_sane::device::option_iterator> m_deviceOptionDescrs;
-    bool m_updateInProgress = false;
+    static bool s_typesRegistered;
 
 public:
     enum Columns {
@@ -220,18 +99,16 @@ public:
         ButtonRole = Qt::UserRole + 1
     };
 
-    explicit DeviceOptionModel(ScanWorker& worker, QString name, QObject* parent = nullptr);
+    explicit DeviceOptionModel(vg_sane::device& device, QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex &parent) const override {
-        return parent == QModelIndex() ? m_deviceOptionDescrs.size() : 0;
-    }
-
+    int rowCount(const QModelIndex &parent) const override;
     int columnCount(const QModelIndex &parent) const override {
         return parent == QModelIndex() ? ColumnLast : 0;
     }
 
     QVariant data(const QModelIndex &index, int role) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role) override;
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
 
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override {
         if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
@@ -241,37 +118,21 @@ public:
         return QAbstractTableModel::headerData(section, orientation, role);
     }
 
-    Qt::ItemFlags flags(const QModelIndex &index) const override;
-
-    void enable(bool val);
+    void enable(bool val = true);
 
 private:
-    mutable bool m_isValid = true;
+    vg_sane::device& m_device;
+    vg_sane::device_options_t m_optionDescriptors;
     bool m_isEnabled = true;
     mutable QVector<QVariant> m_cachedValues;
 
-    struct StopGetOptError {};
-
-    // Proxy methods for transferring the call into a worker thread where SANE wrapper lives
-    //
-    vg_sane::opt_value_t getOptionValue(const vg_sane::device::option_iterator::value_type& pos) const;
-    vg_sane::device::set_opt_result_t setOptionValue(
-        const vg_sane::device::option_iterator::value_type& pos, vg_sane::opt_value_t val);
-
-    QVariant getDataValue(const QModelIndex &index, int role) const;
-
-private slots:
-    void gotDeviceOptions(DeviceOptionsOrError);
+    QVariant getConstraint(const ::SANE_Option_Descriptor& descr) const;
+    QVariant getTooltip(const ::SANE_Option_Descriptor& descr) const;
+    QVariant getValue(const QModelIndex &index, int role) const;
 
 signals:
-    // private signals
-    //
-    void openDevice(std::string);
-    void getDeviceOptions();
-    void getOptionValueSig(int, vg_sane::opt_value_t*, std::exception_ptr*) const;
-    void setOptionValueSig(int, vg_sane::opt_value_t*, vg_sane::device::set_opt_result_t*, std::exception_ptr*);
-
-    // public signals
-    //
-    void deviceOptionsUpdated(bool, QString) const;
+    // Amaizing but Qt designers don't care that a model can refuse setting new data for instance
+    // during some internal error. Let's add additional signal saying about a error if something
+    // went wrong.
+    void error(QString);
 };

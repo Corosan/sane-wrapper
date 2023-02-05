@@ -3,8 +3,6 @@
 #include <QWidget>
 #include <QImage>
 #include <QBrush>
-//#include <QRadialGradient>
-//#include <QLinearGradient>
 
 struct IImageHolder {
     /*!

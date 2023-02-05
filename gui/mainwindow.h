@@ -3,14 +3,12 @@
 #include "scanworker.h"
 
 #include <QMainWindow>
-#include <QThread>
 #include <QLabel>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
 #include <QStyledItemDelegate>
 #include <QItemEditorFactory>
-
-#include <string>
+#include <QScopedPointer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -22,14 +20,12 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
-    void deviceInfoModelReset();
-    void deviceInfoUpdateFinished(bool, QString);
-    void deviceOptionsUpdateFinished(bool, QString);
     void optionButtonPressed(const QModelIndex&);
+    void optionModelError(QString);
     void scannedImageGot(bool, QString);
     void drawingScaleChanged(float);
 
@@ -43,10 +39,11 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QLabel* m_scaleStatusLabel;
-    QThread m_scanThread;
-    ScanWorker* m_scanWorker;
-    Capturer* m_imageCapturer = nullptr;
-    bool m_optionTableResizedFirstTime = false;
+
+    vg_sane::lib::ptr_t m_saneLibWrapperPtr;
+    vg_sane::device m_scannerDevice;
+
+    QScopedPointer<Capturer> m_imageCapturer;
 };
 
 class OptionItemDelegate : public QStyledItemDelegate {

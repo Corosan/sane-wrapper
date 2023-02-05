@@ -7,144 +7,110 @@
         <location filename="capturer.cpp" line="110"/>
         <source>%1:
 %2</source>
-        <translation type="unfinished"></translation>
+        <translation>%1:
+%2</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="113"/>
-        <source>%1 - unknown error</source>
-        <translation type="unfinished"></translation>
+        <location filename="capturer.cpp" line="112"/>
+        <source>%1; no additional info</source>
+        <translation>%1; нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="120"/>
-        <source>Unable to start or continue scanning</source>
-        <translation type="unfinished"></translation>
+        <location filename="capturer.cpp" line="128"/>
+        <source>Can&apos;t start scanning on device &quot;%1&quot;</source>
+        <translation>Не удаётся запустить сканирование на устройстве &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="138"/>
-        <source>Unable to start or continue capturing of scanning data</source>
-        <translation type="unfinished"></translation>
+        <location filename="capturer.cpp" line="139"/>
+        <source>Can&apos;t get actual image scanning parameters</source>
+        <translation>Не удаётся получить текущие параметры сканирования изображения</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="144"/>
-        <source>Unexpected error during getting scanning data</source>
-        <translation type="unfinished"></translation>
+        <location filename="capturer.cpp" line="157"/>
+        <source>Can&apos;t accept new image frame: %1</source>
+        <translation>Невозможно принять новый кадр изображения: %1</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="153"/>
+        <location filename="capturer.cpp" line="168"/>
+        <source>Can&apos;t get another captured image data</source>
+        <oldsource>Can&apos;t get and process another captured image data</oldsource>
+        <translation>Не удаётся получить следующую порцию данных изображения</translation>
+    </message>
+    <message>
+        <location filename="capturer.cpp" line="180"/>
+        <source>&lt;no data&gt;</source>
+        <translation>&lt;нет данных&gt;</translation>
+    </message>
+    <message>
+        <location filename="capturer.cpp" line="173"/>
         <source>Operation cancelled</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="capturer.cpp" line="174"/>
-        <source>Unable to feed data from a scanner</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>DeviceListModel</name>
-    <message>
-        <location filename="scanworker.cpp" line="126"/>
-        <source>Unexpected error on getting devices list:
-%1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="128"/>
-        <source>Unknown error on getting devices list</source>
-        <translation type="unfinished"></translation>
+        <translation>Операция отменена</translation>
     </message>
 </context>
 <context>
     <name>DeviceOptionModel</name>
     <message>
-        <location filename="scanworker.cpp" line="195"/>
-        <source>Unexpected error on getting device options list:
-%1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="197"/>
-        <source>Unknown error on getting device options list</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="221"/>
-        <source>Unexpected error on getting an option &quot;%1&quot; (stop reading others):
-%2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="226"/>
-        <source>Unknown error on getting an option &quot;%1&quot; (stop reading others)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="245"/>
-        <source>Unexpected error on setting an option &quot;%1&quot;:
-%2</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="249"/>
-        <source>Unknown error on setting an option &quot;%1&quot;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="scanworker.cpp" line="386"/>
+        <location filename="scanworker.cpp" line="168"/>
         <source>min value: -32768, max value: 32767.9999</source>
-        <translation type="unfinished"></translation>
+        <translation>мин. значение: -32768, макс. значение: 32767,9999</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="388"/>
-        <location filename="scanworker.cpp" line="414"/>
+        <location filename="scanworker.cpp" line="170"/>
+        <location filename="scanworker.cpp" line="194"/>
         <source>min value: %1, max value: %2</source>
-        <translation type="unfinished"></translation>
+        <translation>мин. значение: %1, макс. значение: %2</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="392"/>
-        <location filename="scanworker.cpp" line="418"/>
+        <location filename="scanworker.cpp" line="174"/>
+        <location filename="scanworker.cpp" line="198"/>
         <source>, step: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>, шаг: %1</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="333"/>
+        <location filename="scanworker.cpp" line="178"/>
+        <location filename="scanworker.cpp" line="202"/>
+        <source>Valid values: </source>
+        <translation>Допустимые значения: </translation>
+    </message>
+    <message>
+        <location filename="scanworker.cpp" line="319"/>
         <source>px</source>
-        <translation type="unfinished"></translation>
+        <translation>пкс</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="334"/>
+        <location filename="scanworker.cpp" line="320"/>
         <source>bit</source>
-        <translation type="unfinished"></translation>
+        <translation>бит</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="335"/>
+        <location filename="scanworker.cpp" line="321"/>
         <source>mm</source>
-        <translation type="unfinished"></translation>
+        <translation>мм</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="336"/>
+        <location filename="scanworker.cpp" line="322"/>
         <source>dpi</source>
-        <translation type="unfinished"></translation>
+        <translation>тчк/дюйм</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="338"/>
+        <location filename="scanworker.cpp" line="324"/>
         <source>us</source>
-        <translation type="unfinished"></translation>
+        <translation>мкс</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="238"/>
+        <location filename="scanworker.h" line="115"/>
         <source>Property</source>
-        <translation type="unfinished"></translation>
+        <translation>Свойство</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="239"/>
+        <location filename="scanworker.h" line="116"/>
         <source>Value</source>
-        <translation type="unfinished"></translation>
+        <translation>Значение</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="240"/>
+        <location filename="scanworker.h" line="117"/>
         <source>Unit</source>
-        <translation type="unfinished"></translation>
+        <translation>Единицы</translation>
     </message>
 </context>
 <context>
@@ -152,74 +118,126 @@
     <message>
         <location filename="mainwindow.ui" line="14"/>
         <source>Scanner</source>
-        <translation type="unfinished"></translation>
+        <translation>Сканнер</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="110"/>
         <source>Capture</source>
-        <translation type="unfinished"></translation>
+        <translation>Захват</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="130"/>
         <source>Device</source>
-        <translation type="unfinished"></translation>
+        <translation>Устройство</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="158"/>
         <source>Vendor:</source>
-        <translation type="unfinished"></translation>
+        <translation>Производитель:</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="175"/>
         <source>Model:</source>
-        <translation type="unfinished"></translation>
+        <translation>Модель:</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="192"/>
         <source>Type:</source>
-        <translation type="unfinished"></translation>
+        <translation>Тип:</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="211"/>
         <source>Parameters</source>
-        <translation type="unfinished"></translation>
+        <translation>Параметры</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="229"/>
         <source>toolBar</source>
-        <translation type="unfinished"></translation>
+        <translation>Панель инструментов</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="245"/>
         <source>Start</source>
-        <translation type="unfinished"></translation>
+        <translation>Старт</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="253"/>
         <source>Stop</source>
-        <translation type="unfinished"></translation>
+        <translation>Стоп</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="258"/>
         <source>ZoomIn</source>
-        <translation type="unfinished"></translation>
+        <translation>Приблизить</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="263"/>
         <source>ZoomOut</source>
-        <translation type="unfinished"></translation>
+        <translation>Отдалить</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="65"/>
+        <location filename="mainwindow.cpp" line="59"/>
+        <source>Unable to update a list of devices: %1</source>
+        <translation>Не удаётся обновить список устройств: %1</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="62"/>
+        <source>Unable to update a list of devices, no additional info</source>
+        <translation>Не удаётся обновить список устройств, нет дополнительной информации</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="108"/>
+        <source>Unable to open device &quot;%1&quot;: %2</source>
+        <translation>Не удаётся открыть устройство &quot;%1&quot;: %2</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="113"/>
+        <source>Unable to open device &quot;%1&quot;, no additional info</source>
+        <translation>Не удаётся открыть устройство &quot;%1&quot;: нет дополнительной информации</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="124"/>
+        <source>Unable to observe device &quot;%1&quot; options: %2</source>
+        <translation>Не удаётся прочитать опции устройства &quot;%1&quot;: %2</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="129"/>
+        <source>Unable to observe device &quot;%1&quot; options, no additional info</source>
+        <translation>Не удаётся прочитать опции устройства &quot;%1&quot;, нет дополнительной информации</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="144"/>
+        <source>Error happened while changing scanner options. Try to re-open the device. Additional details:
+%1</source>
+        <translation>Произошла ошибка во время установки опций сканнера. Попробуйте переоткрыть устройство. Дополнительные детали:
+%1</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="194"/>
         <source>scale: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>масштаб: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="76"/>
-        <location filename="mainwindow.cpp" line="83"/>
-        <location filename="mainwindow.cpp" line="159"/>
+        <location filename="mainwindow.cpp" line="181"/>
         <source> - error</source>
-        <translation type="unfinished"></translation>
+        <translation>- ошибка</translation>
+    </message>
+</context>
+<context>
+    <name>ScannerApp</name>
+    <message>
+        <source>Test string</source>
+        <translation type="vanished">Тестовая строка</translation>
+    </message>
+    <message>
+        <location filename="main.cpp" line="35"/>
+        <source>Unable to initialize SANE lib: %1</source>
+        <translation>Не удаётся проинициализировать библиотеку SANE: %1</translation>
+    </message>
+    <message>
+        <location filename="main.cpp" line="40"/>
+        <source>Unable to initialize SANE lib with unknown error</source>
+        <translation>Не удаётся проинициализировать библиотеку SANE с неизвестной ошибкой</translation>
     </message>
 </context>
 </TS>
