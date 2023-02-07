@@ -4,45 +4,45 @@
 <context>
     <name>Capturer</name>
     <message>
-        <location filename="capturer.cpp" line="110"/>
+        <location filename="capturer.cpp" line="155"/>
         <source>%1:
 %2</source>
         <translation>%1:
 %2</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="112"/>
+        <location filename="capturer.cpp" line="157"/>
         <source>%1; no additional info</source>
         <translation>%1; нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="128"/>
+        <location filename="capturer.cpp" line="173"/>
         <source>Can&apos;t start scanning on device &quot;%1&quot;</source>
         <translation>Не удаётся запустить сканирование на устройстве &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="139"/>
+        <location filename="capturer.cpp" line="184"/>
         <source>Can&apos;t get actual image scanning parameters</source>
         <translation>Не удаётся получить текущие параметры сканирования изображения</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="157"/>
+        <location filename="capturer.cpp" line="202"/>
         <source>Can&apos;t accept new image frame: %1</source>
         <translation>Невозможно принять новый кадр изображения: %1</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="168"/>
+        <location filename="capturer.cpp" line="213"/>
         <source>Can&apos;t get another captured image data</source>
         <oldsource>Can&apos;t get and process another captured image data</oldsource>
         <translation>Не удаётся получить следующую порцию данных изображения</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="180"/>
+        <location filename="capturer.cpp" line="225"/>
         <source>&lt;no data&gt;</source>
         <translation>&lt;нет данных&gt;</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="173"/>
+        <location filename="capturer.cpp" line="218"/>
         <source>Operation cancelled</source>
         <translation>Операция отменена</translation>
     </message>
@@ -176,49 +176,64 @@
         <translation>Отдалить</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="59"/>
+        <location filename="mainwindow.cpp" line="67"/>
         <source>Unable to update a list of devices: %1</source>
         <translation>Не удаётся обновить список устройств: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="62"/>
+        <location filename="mainwindow.cpp" line="70"/>
         <source>Unable to update a list of devices, no additional info</source>
         <translation>Не удаётся обновить список устройств, нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="108"/>
+        <location filename="mainwindow.cpp" line="116"/>
         <source>Unable to open device &quot;%1&quot;: %2</source>
         <translation>Не удаётся открыть устройство &quot;%1&quot;: %2</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="113"/>
+        <location filename="mainwindow.cpp" line="121"/>
         <source>Unable to open device &quot;%1&quot;, no additional info</source>
         <translation>Не удаётся открыть устройство &quot;%1&quot;: нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="124"/>
+        <location filename="mainwindow.cpp" line="132"/>
         <source>Unable to observe device &quot;%1&quot; options: %2</source>
         <translation>Не удаётся прочитать опции устройства &quot;%1&quot;: %2</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="129"/>
+        <location filename="mainwindow.cpp" line="137"/>
         <source>Unable to observe device &quot;%1&quot; options, no additional info</source>
         <translation>Не удаётся прочитать опции устройства &quot;%1&quot;, нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="144"/>
+        <location filename="mainwindow.cpp" line="152"/>
         <source>Error happened while changing scanner options. Try to re-open the device. Additional details:
 %1</source>
         <translation>Произошла ошибка во время установки опций сканнера. Попробуйте переоткрыть устройство. Дополнительные детали:
 %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="194"/>
+        <location filename="mainwindow.cpp" line="171"/>
+        <source>Scanning...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="177"/>
+        <source>Cancelling...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="198"/>
+        <source>The application can&apos;t be closed while scanning operation is in progress</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="214"/>
         <source>scale: %1</source>
         <translation>масштаб: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="181"/>
+        <location filename="mainwindow.cpp" line="192"/>
         <source> - error</source>
         <translation>- ошибка</translation>
     </message>

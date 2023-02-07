@@ -259,11 +259,13 @@ private:
     std::mutex m_scanning_state_mutex;
     std::function<void()> m_scanning_state_notifier;
     bool m_use_internal_waiter;
+    bool m_use_asynchronous_mode;
     std::condition_variable m_internal_state_waiting;
     ScanningState m_scanning_state = ScanningState::Idle;
     std::exception_ptr m_last_scanning_error;
     ::SANE_Parameters m_scanning_params;
     std::list<std::vector<unsigned char>> m_chunks;
+    int m_waiter_pipes[2];
 
     // Should be the last member here to join the thread in exceptional cases before other members
     // go away

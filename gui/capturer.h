@@ -68,13 +68,5 @@ public slots:
     void cancel();
 
 signals:
-    // Public signals
-    //
     void finished(bool, QString);
-
-//    // private signals
-//    //
-//    void startSig();
-//    void cancelSig();
-//    void readSig(unsigned);
 };

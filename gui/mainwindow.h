@@ -16,7 +16,7 @@ QT_END_NAMESPACE
 
 class Capturer;
 
-class MainWindow : public QMainWindow {
+class MainWindow final : public QMainWindow {
     Q_OBJECT
 
 public:
@@ -37,13 +37,16 @@ private slots:
     void on_actionStop_triggered();
 
 private:
-    Ui::MainWindow *ui;
+    QScopedPointer<Ui::MainWindow> m_ui;
     QLabel* m_scaleStatusLabel;
+    QLabel* m_modeStatusLabel;
 
     vg_sane::lib::ptr_t m_saneLibWrapperPtr;
     vg_sane::device m_scannerDevice;
 
     QScopedPointer<Capturer> m_imageCapturer;
+
+    void closeEvent(QCloseEvent* ev) override;
 };
 
 class OptionItemDelegate : public QStyledItemDelegate {

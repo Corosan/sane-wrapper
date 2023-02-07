@@ -3,6 +3,10 @@
 #include "sane_wrapper_utils.h"
 
 #include <stdexcept>
+#include <system_error>
+
+#include <unistd.h>
+#include <sys/select.h>
 
 namespace vg_sane {
 
@@ -12,8 +16,12 @@ lib::wptr_t lib::m_inst_wptr;
 struct lib::lib_internal final {
     template <typename F>
     void log(LogLevel level, F&& msgProducer) {
-        if (m_parent->m_logger_sink)
-            m_parent->m_logger_sink(level, std::forward<F>(msgProducer)());
+        if (m_parent->m_logger_sink) {
+            if constexpr (std::is_invocable_v<F>)
+                m_parent->m_logger_sink(level, std::forward<F>(msgProducer)());
+            else
+                m_parent->m_logger_sink(level, msgProducer);
+        }
     }
 
 private:
@@ -263,15 +271,14 @@ void device::start_scanning(std::function<void()> cb) {
     m_scanning_state_notifier = std::move(cb);
     m_last_scanning_error = {};
     m_scanning_params = {};
+    m_use_asynchronous_mode = false;
     m_chunks.clear();
 
-    m_scanning_state = ScanningState::Initializing;
-    try {
-        m_scanning_thread = std::jthread([this](std::stop_token s){ do_scanning(std::move(s)); });
-    } catch (...) {
-        m_scanning_state = ScanningState::Idle;
-        throw;
-    }
+    m_scanning_thread = std::jthread([this](std::stop_token s){ do_scanning(std::move(s)); });
+
+    std::unique_lock lock{m_scanning_state_mutex};
+    m_internal_state_waiting.wait(lock,
+        [this](){ return m_scanning_state == ScanningState::Initializing; });
 }
 
 void device::cancel_scanning(bool fast) {
@@ -282,6 +289,11 @@ void device::cancel_scanning(bool fast) {
             ::sane_cancel(m_handle);
 #endif
         m_scanning_thread.request_stop();
+        if (m_scanning_state == ScanningState::Scanning) {
+            std::unique_lock lock{m_scanning_state_mutex};
+            if (m_use_asynchronous_mode)
+                ::write(m_waiter_pipes[1], "\0", 1);
+        }
     }
 }
 
@@ -346,8 +358,13 @@ std::vector<unsigned char> device::get_scanning_data() {
 
 void device::do_scanning(std::stop_token stop_token) {
     bool cancel_requested = false;
+    ::SANE_Int sane_fd;
+    ::SANE_Status status;
 
-    m_lib_internal->log(LogLevel::Debug, [](){ return "background scanning started"; });
+    m_scanning_state = ScanningState::Initializing;
+    m_internal_state_waiting.notify_all();
+
+    m_lib_internal->log(LogLevel::Debug, "background scanning started");
 
     try {
 #ifdef SANE_PP_STUB
@@ -368,6 +385,8 @@ void device::do_scanning(std::stop_token stop_token) {
         m_scanning_params.lines = 32;
         m_scanning_params.depth = 1;
 
+        m_lib_internal->log(LogLevel::Debug, "parameters got, going to extract test data in synchronous mode");
+
         m_scanning_state = ScanningState::Scanning;
         m_scanning_state_notifier();
 #else
@@ -379,11 +398,44 @@ void device::do_scanning(std::stop_token stop_token) {
         details::checked_call("unable to get scan parameters", &::sane_get_parameters,
             m_handle, &m_scanning_params);
 
+        m_lib_internal->log(LogLevel::Debug,
+            [this](){ return std::string{"parameters got (last_frame="}
+                + (m_scanning_params.last_frame == SANE_TRUE ? "TRUE" : "FALSE")
+                + "), going to extract data in asynchronous mode"; });
+
+        while (true) {
+            if (status = ::sane_set_io_mode(m_handle, SANE_TRUE); status == SANE_STATUS_GOOD) {
+                if (::pipe(m_waiter_pipes) == 0) {
+                    if (status = ::sane_get_select_fd(m_handle, &sane_fd); status == SANE_STATUS_GOOD) {
+                        m_use_asynchronous_mode = true;
+                        break;
+                    }
+
+                    m_lib_internal->log(LogLevel::Debug,
+                        [status](){ return "failed to get waiting file descriptor from underlying library: "
+                            + std::string{::sane_strstatus(status)}; });
+
+                    ::close(m_waiter_pipes[0]);
+                    ::close(m_waiter_pipes[1]);
+                } else {
+                    m_lib_internal->log(LogLevel::Debug,
+                        [err = errno](){ return "failed to create waiting pipes with code "
+                            + std::to_string(err); });
+                }
+
+                m_lib_internal->log(LogLevel::Debug, "switching back into synchronous mode");
+                ::sane_set_io_mode(m_handle, SANE_FALSE);
+            } else {
+                m_lib_internal->log(LogLevel::Debug,
+                    [status](){ return std::string{"failed to switch into asynchronous mode: "}
+                        + ::sane_strstatus(status); });
+            }
+            break;
+        }
+
         m_scanning_state = ScanningState::Scanning;
         m_scanning_state_notifier();
 #endif
-
-        m_lib_internal->log(LogLevel::Debug, [](){ return "parameters got, now start reading loop"; });
 
         bool run = true;
         std::size_t was_read_totally = 0;
@@ -398,7 +450,7 @@ void device::do_scanning(std::stop_token stop_token) {
                 // instead of cancelling it. Pity.
                 ::sane_cancel(m_handle);
 #endif
-                throw error_with_code("", SANE_STATUS_CANCELLED);
+                throw error_with_code("[cancel flag request]", SANE_STATUS_CANCELLED);
             }
 
             std::vector<unsigned char> chunk(4096*2);
@@ -426,7 +478,25 @@ void device::do_scanning(std::stop_token stop_token) {
                 run = false;
 #else
             ::SANE_Int len = 0;
-            ::SANE_Status status = ::sane_read(m_handle, chunk.data(), chunk.size(), &len);
+
+            if (m_use_asynchronous_mode) {
+                fd_set async_mode_fds;
+                FD_ZERO(&async_mode_fds);
+                FD_SET(sane_fd, &async_mode_fds);
+                FD_SET(m_waiter_pipes[0], &async_mode_fds);
+
+                auto r = ::select(std::max(sane_fd, m_waiter_pipes[0]) + 1,
+                    &async_mode_fds, nullptr, nullptr, nullptr);
+                if (r < 0)
+                    throw std::system_error(errno, std::generic_category(),
+                        "unable to 'select' on scanner and inner pipe file descriptors");
+                if (FD_ISSET(m_waiter_pipes[0], &async_mode_fds)) {
+                    ::sane_cancel(m_handle);
+                    throw error_with_code("[cancel pipe request]", SANE_STATUS_CANCELLED);
+                }
+            }
+
+            status = ::sane_read(m_handle, chunk.data(), chunk.size(), &len);
 
             if (status != SANE_STATUS_GOOD && status != SANE_STATUS_EOF)
                 throw error_with_code("unable to read next packet of data from scanner", status);
@@ -444,24 +514,25 @@ void device::do_scanning(std::stop_token stop_token) {
             if (status == SANE_STATUS_EOF)
                 run = false;
 #endif
-            was_read_totally += was_read;
-
             m_lib_internal->log(LogLevel::Debug,
                 [was_read, was_read_totally](){
                     return "have read " + std::to_string(was_read) + " bytes at offset "
                         + std::to_string(was_read_totally); });
+
+            was_read_totally += was_read;
         }
-    } catch (const error_with_code& er) {
-        m_lib_internal->log(LogLevel::Debug, [&er](){
-            return "got the wrapper exception with code " + std::to_string(er.get_code()); });
-        if (er.get_code() == SANE_STATUS_CANCELLED)
+    } catch (const error_with_code& e) {
+        m_lib_internal->log(LogLevel::Debug, [&e](){
+            return std::string{"scanning cycle interrupted by an exception {"} + e.what()
+                + "} with code " + std::to_string(e.get_code()); });
+        if (e.get_code() == SANE_STATUS_CANCELLED)
             cancel_requested = true;
         else {
             std::lock_guard guard{m_scanning_state_mutex};
             m_last_scanning_error = std::current_exception();
         }
     } catch (...) {
-        m_lib_internal->log(LogLevel::Debug, [](){ return "got an unknown exception"; });
+        m_lib_internal->log(LogLevel::Debug, "scanning cycle interrupted by some exception");
         std::lock_guard guard{m_scanning_state_mutex};
         m_last_scanning_error = std::current_exception();
     }
@@ -476,13 +547,20 @@ void device::do_scanning(std::stop_token stop_token) {
 
     {
         std::lock_guard guard{m_scanning_state_mutex};
+
+        if (m_use_asynchronous_mode) {
+            ::close(m_waiter_pipes[0]);
+            ::close(m_waiter_pipes[1]);
+            m_use_asynchronous_mode = false;
+        }
+
         m_chunks.push_back(std::vector<unsigned char>{});
     }
 
     m_scanning_state = ScanningState::Idle;
     m_scanning_state_notifier();
 
-    m_lib_internal->log(LogLevel::Debug, [](){ return "background scanning finished"; });
+    m_lib_internal->log(LogLevel::Debug, "background scanning finished");
 }
 
 } // ns vg_sane

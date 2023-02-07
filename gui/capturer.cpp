@@ -28,19 +28,21 @@ public:
         // If height is not known, let's start from square image and adjust height on the flight
         int height = params.lines > 0 ? params.lines : heightHint > 0 ? heightHint : width;
 
-        //m_image = QImage(width, height,
-        //    params.depth == 1 ? QImage::Format_Mono :
-        //    params.depth == 8 ? QImage::Format_Grayscale8 :
-        //        QImage::Format_Grayscale16);
         if (params.depth == 1) {
             QImage img(width, height, QImage::Format_Mono);
             img.setColor(0, qRgb(255, 255, 255));
             img.setColor(1, qRgb(0, 0, 0));
             img.fill(0u);
             m_imageHolder.modifier().setImage(std::move(img));
-        } else
-            throw std::runtime_error("GrayImageBuilder doesn't support "
-                + std::to_string(params.depth) + " bits-per-pixel depth");
+        } else if (params.depth == 8) {
+            QImage img(width, height, QImage::Format_RGB32);
+            img.fill(Qt::white);
+            m_imageHolder.modifier().setImage(std::move(img));
+        } else if (params.depth == 16) {
+            QImage img(width, height, QImage::Format_RGBX64);
+            img.fill(Qt::white);
+            m_imageHolder.modifier().setImage(std::move(img));
+        }
     }
 
     void newFrame(const ::SANE_Parameters& params) override {
@@ -49,16 +51,59 @@ public:
 
     void feedData(std::span<const unsigned char> data) override {
         auto modifier = m_imageHolder.modifier();
-        const auto endPos = modifier.width() / 8 + (modifier.width() % 8 ? 1 : 0);
 
-        while (! data.empty()) {
-            auto toCopyBytes = std::min(endPos - m_linePos, (int)data.size());
-            std::memcpy(modifier.scanLine(m_scanLine, m_linePos * 8, toCopyBytes * 8) + m_linePos,
-                data.data(), toCopyBytes);
-            data = data.subspan(toCopyBytes);
-            if ((m_linePos += toCopyBytes) == endPos) {
-                m_linePos = 0;
-                ++m_scanLine;
+        if (m_scanParams.depth == 1) {
+            const auto endPos = modifier.width() / 8 + (modifier.width() % 8 ? 1 : 0);
+
+            while (! data.empty()) {
+                auto toCopyBytes = std::min(endPos - m_linePos, (int)data.size());
+                std::memcpy(modifier.scanLine(m_scanLine, m_linePos * 8, toCopyBytes * 8) + m_linePos,
+                    data.data(), toCopyBytes);
+                data = data.subspan(toCopyBytes);
+                if ((m_linePos += toCopyBytes) == endPos) {
+                    m_linePos = 0;
+                    ++m_scanLine;
+                }
+            }
+        } else if (m_scanParams.depth == 8) {
+            const auto endPos = modifier.width();
+
+            while (! data.empty()) {
+                auto toProcessBytes = std::min(endPos - m_linePos, (int)data.size());
+                auto destPtr = modifier.scanLine(m_scanLine, m_linePos, toProcessBytes) + m_linePos * 4;
+                for (auto srcPtr = data.data(), srcEnd = data.data() + toProcessBytes; srcPtr < srcEnd; ++srcPtr) {
+                    *destPtr++ = *srcPtr;
+                    *destPtr++ = *srcPtr;
+                    *destPtr++ = *srcPtr;
+                    *destPtr++ = '\xff';
+                }
+                data = data.subspan(toProcessBytes);
+                if ((m_linePos += toProcessBytes) == endPos) {
+                    m_linePos = 0;
+                    ++m_scanLine;
+                }
+            }
+        } else if (m_scanParams.depth == 16) {
+            const auto endPos = modifier.width();
+
+            while (! data.empty()) {
+                auto toProcessBytes = std::min(endPos - m_linePos, (int)data.size());
+                auto destPtr = modifier.scanLine(m_scanLine, m_linePos, toProcessBytes) + m_linePos * 8;
+                for (auto srcPtr = data.data(), srcEnd = data.data() + toProcessBytes; srcPtr < srcEnd; ++srcPtr) {
+                    *destPtr++ = *srcPtr;
+                    *destPtr++ = *(srcPtr+1);
+                    *destPtr++ = *srcPtr;
+                    *destPtr++ = *(srcPtr+1);
+                    *destPtr++ = *srcPtr;
+                    *destPtr++ = *(srcPtr+1);
+                    *destPtr++ = '\xff';
+                    *destPtr++ = '\xff';
+                }
+                data = data.subspan(toProcessBytes);
+                if ((m_linePos += toProcessBytes) == endPos) {
+                    m_linePos = 0;
+                    ++m_scanLine;
+                }
             }
         }
     }
