@@ -43,3 +43,13 @@ interaction too much - most of Qt's signal stuff can be thrown away. But anyway 
 more complicated than a scanner wrapper library. I've re-designed all operations except scanning to
 be considered as atomic and don't require to be running in the worker thread. And the scanning is
 implemented asynchronously right inside the wrapper library.
+
+7. I couldn't get proper cancelling of scanning from my HP DeskJet 5000 series device. SANE doc
+clearly mentions that sane_cancel() call can be executed from a signal handler when the scanning is
+in progress. But it yields to deadlock if I set the signal handler to be executed in a context of a
+scanning thread. And it yields to a crash when it's called from context of any other thread. The
+same thing happened if I just call sane_cancel() from another (GUI) thread. I've tried to call it in
+the middle of scanning normally between reading pieces of data - it blocks until my device finishes
+its work. Too much code and efforts to get cancelling to work - looks like HP backend developers
+didn't pay enough attention on this.
+

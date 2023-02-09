@@ -3,15 +3,9 @@
 #include <QCoreApplication>
 #include <QEvent>
 
-//#include <QtGlobal>
-//#include <QtDebug>
-
 #include <exception>
 #include <cstring>
-//#include <memory>
-//#include <variant>
 #include <stdexcept>
-//#include <string>
 #include <algorithm>
 
 class GrayImageBuilder : public IImageBuilder {
@@ -113,6 +107,31 @@ public:
     }
 };
 
+class InterleavedColorImageBuilder : public IImageBuilder {
+    ::SANE_Parameters m_scanParams;
+    IImageHolder& m_imageHolder;
+    int m_scanLine = 0;
+    int m_linePos = 0;
+
+public:
+    InterleavedColorImageBuilder(const ::SANE_Parameters& params, IImageHolder& imageHolder, int heightHint)
+        : m_scanParams(params)
+        , m_imageHolder(imageHolder) {
+
+    }
+
+    void newFrame(const ::SANE_Parameters& params) override {
+        throw std::runtime_error("unexpected new frame for interleaved color image");
+    }
+
+    void feedData(std::span<const unsigned char> data) override {
+    }
+
+    unsigned short getFinalHeight() override {
+        return m_scanLine + (m_linePos != 0 ? 1 : 0);
+    }
+};
+
 QScopedPointer<IImageBuilder> createBuilder(
     const ::SANE_Parameters& params, IImageHolder& imageHolder, int heightHint = -1) {
     if (params.depth != 1 && params.depth != 8 && params.depth != 16)
@@ -121,6 +140,8 @@ QScopedPointer<IImageBuilder> createBuilder(
 
     if (params.format == SANE_FRAME_GRAY)
         return QScopedPointer<IImageBuilder>(new GrayImageBuilder(params, imageHolder, heightHint));
+    else if (params.format == SANE_FRAME_RGB)
+        return QScopedPointer<IImageBuilder>(new InterleavedColorImageBuilder(params, imageHolder, heightHint));
 
     throw std::runtime_error("unable to decode image with unknown format id="
         + std::to_string(params.format));
@@ -159,7 +180,7 @@ void Capturer::wrappedCall(F&& f, QString msg, Args&& ... args) {
 }
 
 void Capturer::start() {
-    m_isCancellingRequested = false;
+    m_isCancelRequested = false;
     startInner();
 }
 
@@ -214,7 +235,7 @@ void Capturer::processImageData() {
     );
 
     if (chunk.empty()) {
-        if (m_isCancellingRequested) {
+        if (m_isCancelRequested) {
             emit finished(false, tr("Operation cancelled"));
         } else if (m_lastError) {
             try {
@@ -233,12 +254,12 @@ void Capturer::processImageData() {
             } else
                 startInner();
         }
-    } else if (! m_isCancellingRequested && ! m_lastError) {
+    } else if (! m_isCancelRequested && ! m_lastError) {
         m_imageBuilder->feedData({chunk.begin(), chunk.end()});
     }
 }
 
 void Capturer::cancel() {
-    m_isCancellingRequested = true;
+    m_isCancelRequested = true;
     m_scannerDevice.cancel_scanning(s_useFastCancelling);
 }

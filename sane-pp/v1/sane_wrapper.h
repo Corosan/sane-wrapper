@@ -24,6 +24,7 @@
 #include <condition_variable>
 
 #include <sane/sane.h>
+#include <pthread.h>
 
 namespace vg_sane {
 
@@ -121,6 +122,20 @@ public:
         last
     };
 
+    /**
+     * How to cancel current scanning operation? Experiments with my HP DeskJet 5000 series have
+     * shown that any call of sane_cancel() not from a worker thread driving reading from a scanner
+     * yields to a crash somewhere inside the SANE library. But I left a code for my experiments
+     * here to check with other printers when will be able to do it.
+     */
+    enum class cancel_mode : char {
+        safe,       ///< just set a flag for the worker thread to stop when it can
+#ifdef SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT
+        via_signal, ///< ... also call sane_cancel() via a signal in a context of the worker thread
+#endif
+        direct      ///< ... also call sane_cancel() directly in a place where cancelling is requested
+    };
+
     using set_opt_result_t = std::bitset<static_cast<std::size_t>(set_opt_result_flags::last)>;
 
     struct option_iterator final {
@@ -205,6 +220,13 @@ public:
      * method. It returns zero sized buffer at normal end or if the operation has been cancelled.
      * In all other circumstances any getter can throw an exception carrying information about
      * latest error in the scanning process. The process is considered finished after this.
+     *
+     * @param cb is a notification callback which will be called in a context of a worker thread
+     *    when some internal state is changed. Further interaction with this object reasonable to do
+     *    only after this callback is invoked. It's assumed that a code under the callback wakes up
+     *    some messaging queue of a consumer thread wanting to call getters below. If not provided,
+     *    synchronous mode is used for getters below - they would block if an internal state hasn't
+     *    arived needed point yet.
      */
     void start_scanning(std::function<void()> cb = {});
 
@@ -228,7 +250,7 @@ public:
      * Cancels currently running scan operation asynchronously. The operation can be considered
      * cancelled only when get_scanning_data() returns empty buffer.
      */
-    void cancel_scanning(bool fast = false);
+    void cancel_scanning(cancel_mode c_mode = cancel_mode::safe);
 
 private:
 #ifdef SANE_PP_STUB
@@ -239,9 +261,19 @@ private:
 
     using deletion_cb_t = std::function<void(const std::string&)>;
 
-    enum class ScanningState : char {
-        Idle, Initializing, Starting, Scanning
+    enum class scanning_state : char {
+        idle, initializing, starting, scanning
     };
+
+    static const char* state_to_str(scanning_state val) {
+        switch (val) {
+        case scanning_state::idle: return "[idle]";
+        case scanning_state::initializing: return "[initializing]";
+        case scanning_state::starting: return "[starting]";
+        case scanning_state::scanning: return "[scanning]";
+        default: return "[???]";
+        }
+    }
 
 #ifdef SANE_PP_STUB
     mutable handle_t m_handle;
@@ -257,11 +289,11 @@ private:
     deletion_cb_t m_deletion_cb; // locks the library singleton inside a lambda, stored here
 
     std::mutex m_scanning_state_mutex;
+    scanning_state m_scanning_state = scanning_state::idle;
+    std::condition_variable m_internal_state_waiting;
     std::function<void()> m_scanning_state_notifier;
     bool m_use_internal_waiter;
     bool m_use_asynchronous_mode;
-    std::condition_variable m_internal_state_waiting;
-    ScanningState m_scanning_state = ScanningState::Idle;
     std::exception_ptr m_last_scanning_error;
     ::SANE_Parameters m_scanning_params;
     std::list<std::vector<unsigned char>> m_chunks;

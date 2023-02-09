@@ -70,6 +70,7 @@ if(QT_VERSION_MAJOR EQUAL 6)
 endif()
 
 # set(SANE_PP_STUB ON)
+# set(SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT ON)
 add_subdirectory(../sane-pp sane-pp)
 
 target_link_libraries(gui PRIVATE sane-pp-v1)

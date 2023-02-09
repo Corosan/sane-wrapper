@@ -4,45 +4,45 @@
 <context>
     <name>Capturer</name>
     <message>
-        <location filename="capturer.cpp" line="155"/>
+        <location filename="capturer.cpp" line="176"/>
         <source>%1:
 %2</source>
         <translation>%1:
 %2</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="157"/>
+        <location filename="capturer.cpp" line="178"/>
         <source>%1; no additional info</source>
         <translation>%1; нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="173"/>
+        <location filename="capturer.cpp" line="194"/>
         <source>Can&apos;t start scanning on device &quot;%1&quot;</source>
         <translation>Не удаётся запустить сканирование на устройстве &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="184"/>
+        <location filename="capturer.cpp" line="205"/>
         <source>Can&apos;t get actual image scanning parameters</source>
         <translation>Не удаётся получить текущие параметры сканирования изображения</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="202"/>
+        <location filename="capturer.cpp" line="223"/>
         <source>Can&apos;t accept new image frame: %1</source>
         <translation>Невозможно принять новый кадр изображения: %1</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="213"/>
+        <location filename="capturer.cpp" line="234"/>
         <source>Can&apos;t get another captured image data</source>
         <oldsource>Can&apos;t get and process another captured image data</oldsource>
         <translation>Не удаётся получить следующую порцию данных изображения</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="225"/>
+        <location filename="capturer.cpp" line="246"/>
         <source>&lt;no data&gt;</source>
         <translation>&lt;нет данных&gt;</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="218"/>
+        <location filename="capturer.cpp" line="239"/>
         <source>Operation cancelled</source>
         <translation>Операция отменена</translation>
     </message>

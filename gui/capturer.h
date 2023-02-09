@@ -41,9 +41,7 @@ public:
     ~Capturer();
 
 private:
-    // Unable to use fast cancelling (direct call to ::sane_cancel) for some reason -
-    // my SANE library crashes after this.
-    static constexpr bool s_useFastCancelling = false;
+    static constexpr auto s_useFastCancelling = vg_sane::device::cancel_mode::safe;
 
     vg_sane::device& m_scannerDevice;
     IImageHolder& m_imageHolder;
@@ -52,7 +50,7 @@ private:
     QString m_lastErrorContext;
     bool m_isWaitingForScanningParameters;
     bool m_isLastFrame;
-    bool m_isCancellingRequested;
+    bool m_isCancelRequested;
 
     template<typename F, typename ...Args>
     void wrappedCall(F&& f, QString msg, Args&& ... args);

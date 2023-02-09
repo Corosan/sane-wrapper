@@ -7,6 +7,8 @@
 
 #include <unistd.h>
 #include <sys/select.h>
+#include <sys/types.h>
+#include <signal.h>
 
 namespace vg_sane {
 
@@ -40,12 +42,32 @@ lib::ptr_t lib::instance() {
     return p;
 }
 
+#ifdef SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT
+namespace {
+
+::SANE_Handle g_device_handle = {};
+
+void cancel_sighandler(int sig, siginfo_t *info, void *ucontext) {
+    if (g_device_handle)
+        ::sane_cancel(g_device_handle);
+}
+
+} // ns anonymous
+#endif
+
 lib::lib()
     : m_internal_iface{new lib_internal{this}} {
 #ifndef SANE_PP_STUB
     details::checked_call("unable to initialize library", &::sane_init, &m_sane_ver, nullptr);
 #else
     m_sane_ver = 1;
+#endif
+
+#ifdef SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT
+    struct ::sigaction sa{};
+    sa.sa_sigaction = &cancel_sighandler;
+    sa.sa_flags = SA_SIGINFO;
+    ::sigaction(SIGUSR1, &sa, nullptr);
 #endif
 }
 
@@ -259,9 +281,9 @@ device::set_opt_result_t device::set_option(int pos, opt_value_t val) {
 }
 
 void device::start_scanning(std::function<void()> cb) {
-    if (m_scanning_state != ScanningState::Idle)
+    if (m_scanning_state != scanning_state::idle)
         throw std::logic_error("trying to start scanning on \"" + m_name + "\" device "
-            "while the scanning is in progress");
+            "while the scanning is in progress (state=" + state_to_str(m_scanning_state));
 
     m_lib_internal->log(LogLevel::Info, [this](){ return "start scanning on device \"" + m_name + '"'; });
     m_use_internal_waiter = !cb;
@@ -276,23 +298,37 @@ void device::start_scanning(std::function<void()> cb) {
 
     m_scanning_thread = std::jthread([this](std::stop_token s){ do_scanning(std::move(s)); });
 
+    // Let's wait while the worker thread is started and passed some lines of initialization
     std::unique_lock lock{m_scanning_state_mutex};
     m_internal_state_waiting.wait(lock,
-        [this](){ return m_scanning_state == ScanningState::Initializing; });
+        [this](){ return m_scanning_state == scanning_state::initializing; });
 }
 
-void device::cancel_scanning(bool fast) {
-    if (m_scanning_state != ScanningState::Idle) {
-        m_lib_internal->log(LogLevel::Info, [this](){ return "cancel scanning on device \"" + m_name + '"'; });
-#ifndef SANE_PP_STUB
-        if (fast)
-            ::sane_cancel(m_handle);
-#endif
+void device::cancel_scanning(cancel_mode c_mode) {
+    if (m_scanning_state != scanning_state::idle) {
+        m_lib_internal->log(LogLevel::Info, [this](){ return "cancel scanning on device \"" + m_name
+            + "\" at state " + state_to_str(m_scanning_state); });
+
+        // Let's set a 'request to stop' flag in a worker thread regardless of cancel mode
         m_scanning_thread.request_stop();
-        if (m_scanning_state == ScanningState::Scanning) {
-            std::unique_lock lock{m_scanning_state_mutex};
+
+        std::unique_lock lock{m_scanning_state_mutex};
+        if (m_scanning_state == scanning_state::scanning) {
             if (m_use_asynchronous_mode)
+                // Cancel mode doesn't matter if current device supports asynchronous reading
+                // and it has been initialized successfully - it should work perfectly fine
+                // in this case without other tricks with ::sane_cancel() call.
                 ::write(m_waiter_pipes[1], "\0", 1);
+#ifndef SANE_PP_STUB
+#ifdef SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT
+            else if (c_mode == cancel_mode::via_signal)
+                // Is it safe to assume that C++'s thread::native_handle() return's pthread_t id?
+                // In general - no, but let's assume it base on experiments. Not so perfect.
+                ::pthread_kill(m_scanning_thread.native_handle(), SIGUSR1);
+#endif
+            else if (c_mode == cancel_mode::direct)
+                ::sane_cancel(m_handle);
+#endif
         }
     }
 }
@@ -305,7 +341,7 @@ void device::check_for_scanning_error(std::unique_lock<std::mutex>&& lock) {
         std::swap(ptr, m_last_scanning_error);
     }
 
-    if ((m_scanning_state == ScanningState::Idle || ptr) && m_scanning_thread.joinable())
+    if ((m_scanning_state == scanning_state::idle || ptr) && m_scanning_thread.joinable())
         m_scanning_thread.join();
 
     if (ptr)
@@ -316,8 +352,8 @@ const ::SANE_Parameters* device::get_scanning_parameters() {
     if (m_use_internal_waiter) {
         std::unique_lock lock{m_scanning_state_mutex};
         m_internal_state_waiting.wait(lock, [this](){
-            return m_scanning_state == ScanningState::Scanning
-                || m_scanning_state == ScanningState::Idle
+            return m_scanning_state == scanning_state::scanning
+                || m_scanning_state == scanning_state::idle
                 || m_last_scanning_error; });
 
         check_for_scanning_error(std::move(lock));
@@ -325,7 +361,7 @@ const ::SANE_Parameters* device::get_scanning_parameters() {
     }
 
     check_for_scanning_error(std::unique_lock{m_scanning_state_mutex});
-    return (m_scanning_state == ScanningState::Scanning || m_scanning_state == ScanningState::Idle) ?
+    return (m_scanning_state == scanning_state::scanning || m_scanning_state == scanning_state::idle) ?
         &m_scanning_params : nullptr;
 }
 
@@ -361,10 +397,14 @@ void device::do_scanning(std::stop_token stop_token) {
     ::SANE_Int sane_fd;
     ::SANE_Status status;
 
-    m_scanning_state = ScanningState::Initializing;
+#ifdef SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT
+    g_device_handle = m_handle;
+#endif
+
+    m_scanning_state = scanning_state::initializing;
     m_internal_state_waiting.notify_all();
 
-    m_lib_internal->log(LogLevel::Debug, "background scanning started");
+    m_lib_internal->log(LogLevel::Debug, "background thread for scanning started");
 
     try {
 #ifdef SANE_PP_STUB
@@ -372,7 +412,7 @@ void device::do_scanning(std::stop_token stop_token) {
 
         m_sample_image_offset = 0;
 
-        m_scanning_state = ScanningState::Starting;
+        m_scanning_state = scanning_state::starting;
         m_scanning_state_notifier();
 
         std::this_thread::sleep_for(500ms);
@@ -387,10 +427,10 @@ void device::do_scanning(std::stop_token stop_token) {
 
         m_lib_internal->log(LogLevel::Debug, "parameters got, going to extract test data in synchronous mode");
 
-        m_scanning_state = ScanningState::Scanning;
+        m_scanning_state = scanning_state::scanning;
         m_scanning_state_notifier();
 #else
-        m_scanning_state = ScanningState::Starting;
+        m_scanning_state = scanning_state::starting;
         m_scanning_state_notifier();
 
         details::checked_call("unable to start scanning", &::sane_start, m_handle);
@@ -433,7 +473,7 @@ void device::do_scanning(std::stop_token stop_token) {
             break;
         }
 
-        m_scanning_state = ScanningState::Scanning;
+        m_scanning_state = scanning_state::scanning;
         m_scanning_state_notifier();
 #endif
 
@@ -538,7 +578,7 @@ void device::do_scanning(std::stop_token stop_token) {
     }
 
 #ifndef SANE_PP_STUB
-    if (m_scanning_state == ScanningState::Scanning
+    if (m_scanning_state == scanning_state::scanning
         && ! cancel_requested
         && m_scanning_params.last_frame == SANE_TRUE)
 
@@ -553,11 +593,15 @@ void device::do_scanning(std::stop_token stop_token) {
             ::close(m_waiter_pipes[1]);
             m_use_asynchronous_mode = false;
         }
+#ifdef SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT
+        else
+            g_device_handle = {};
+#endif
 
         m_chunks.push_back(std::vector<unsigned char>{});
     }
 
-    m_scanning_state = ScanningState::Idle;
+    m_scanning_state = scanning_state::idle;
     m_scanning_state_notifier();
 
     m_lib_internal->log(LogLevel::Debug, "background scanning finished");
