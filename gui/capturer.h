@@ -6,9 +6,11 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariant>
 #include <QScopedPointer>
 
 #include <exception>
+#include <variant>
 
 /*!
  * \brief An abstract interface for image builders supporting various image formats
@@ -25,7 +27,14 @@ struct IImageBuilder {
      */
     virtual void newFrame(const ::SANE_Parameters& params) = 0;
     virtual void feedData(std::span<const unsigned char> data) = 0;
-    virtual unsigned short getFinalHeight() = 0;
+    virtual int getFinalHeight() = 0;
+
+    /*!
+     * \brief get progress of current image building
+     * \return either double value denoting percents or integer denoting bytes processed when no
+     *         information about image size
+     */
+    virtual std::variant<int, double> getProgress() = 0;
 };
 
 /*!
@@ -48,6 +57,7 @@ private:
     QScopedPointer<IImageBuilder> m_imageBuilder;
     std::exception_ptr m_lastError;
     QString m_lastErrorContext;
+    int m_lineCountHint;
     bool m_isWaitingForScanningParameters;
     bool m_isLastFrame;
     bool m_isCancelRequested;
@@ -62,9 +72,10 @@ private:
     void processImageData();
 
 public slots:
-    void start();
+    void start(int);
     void cancel();
 
 signals:
     void finished(bool, QString);
+    void progress(QVariant);
 };

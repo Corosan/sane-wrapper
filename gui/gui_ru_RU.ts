@@ -4,45 +4,45 @@
 <context>
     <name>Capturer</name>
     <message>
-        <location filename="capturer.cpp" line="176"/>
+        <location filename="capturer.cpp" line="276"/>
         <source>%1:
 %2</source>
         <translation>%1:
 %2</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="178"/>
+        <location filename="capturer.cpp" line="278"/>
         <source>%1; no additional info</source>
         <translation>%1; нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="194"/>
+        <location filename="capturer.cpp" line="295"/>
         <source>Can&apos;t start scanning on device &quot;%1&quot;</source>
         <translation>Не удаётся запустить сканирование на устройстве &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="205"/>
+        <location filename="capturer.cpp" line="306"/>
         <source>Can&apos;t get actual image scanning parameters</source>
         <translation>Не удаётся получить текущие параметры сканирования изображения</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="223"/>
+        <location filename="capturer.cpp" line="330"/>
         <source>Can&apos;t accept new image frame: %1</source>
         <translation>Невозможно принять новый кадр изображения: %1</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="234"/>
+        <location filename="capturer.cpp" line="341"/>
         <source>Can&apos;t get another captured image data</source>
         <oldsource>Can&apos;t get and process another captured image data</oldsource>
         <translation>Не удаётся получить следующую порцию данных изображения</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="246"/>
+        <location filename="capturer.cpp" line="353"/>
         <source>&lt;no data&gt;</source>
         <translation>&lt;нет данных&gt;</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="239"/>
+        <location filename="capturer.cpp" line="346"/>
         <source>Operation cancelled</source>
         <translation>Операция отменена</translation>
     </message>
@@ -50,65 +50,65 @@
 <context>
     <name>DeviceOptionModel</name>
     <message>
-        <location filename="scanworker.cpp" line="168"/>
+        <location filename="scanworker.cpp" line="170"/>
         <source>min value: -32768, max value: 32767.9999</source>
         <translation>мин. значение: -32768, макс. значение: 32767,9999</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="170"/>
-        <location filename="scanworker.cpp" line="194"/>
+        <location filename="scanworker.cpp" line="172"/>
+        <location filename="scanworker.cpp" line="196"/>
         <source>min value: %1, max value: %2</source>
         <translation>мин. значение: %1, макс. значение: %2</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="174"/>
-        <location filename="scanworker.cpp" line="198"/>
+        <location filename="scanworker.cpp" line="176"/>
+        <location filename="scanworker.cpp" line="200"/>
         <source>, step: %1</source>
         <translation>, шаг: %1</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="178"/>
-        <location filename="scanworker.cpp" line="202"/>
+        <location filename="scanworker.cpp" line="180"/>
+        <location filename="scanworker.cpp" line="204"/>
         <source>Valid values: </source>
         <translation>Допустимые значения: </translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="319"/>
+        <location filename="scanworker.cpp" line="321"/>
         <source>px</source>
         <translation>пкс</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="320"/>
+        <location filename="scanworker.cpp" line="322"/>
         <source>bit</source>
         <translation>бит</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="321"/>
+        <location filename="scanworker.cpp" line="323"/>
         <source>mm</source>
         <translation>мм</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="322"/>
+        <location filename="scanworker.cpp" line="324"/>
         <source>dpi</source>
         <translation>тчк/дюйм</translation>
     </message>
     <message>
-        <location filename="scanworker.cpp" line="324"/>
+        <location filename="scanworker.cpp" line="326"/>
         <source>us</source>
         <translation>мкс</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="115"/>
+        <location filename="scanworker.h" line="116"/>
         <source>Property</source>
         <translation>Свойство</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="116"/>
+        <location filename="scanworker.h" line="117"/>
         <source>Value</source>
         <translation>Значение</translation>
     </message>
     <message>
-        <location filename="scanworker.h" line="117"/>
+        <location filename="scanworker.h" line="118"/>
         <source>Unit</source>
         <translation>Единицы</translation>
     </message>
@@ -213,29 +213,40 @@
 %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="171"/>
+        <location filename="mainwindow.cpp" line="175"/>
         <source>Scanning...</source>
-        <translation type="unfinished"></translation>
+        <translation>Сканирование...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="177"/>
+        <location filename="mainwindow.cpp" line="183"/>
+        <source>Scanning... %L1%</source>
+        <oldsource>Scanning... %1%%</oldsource>
+        <translation>Сканирование... %L1%</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="185"/>
+        <source>Scanning... %1 bytes</source>
+        <translation>Сканирование... %1 байт</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="189"/>
         <source>Cancelling...</source>
-        <translation type="unfinished"></translation>
+        <translation>Отмена...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="198"/>
+        <location filename="mainwindow.cpp" line="210"/>
         <source>The application can&apos;t be closed while scanning operation is in progress</source>
-        <translation type="unfinished"></translation>
+        <translation>Нельзя закрыть приложение пока запущено сканирование</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="214"/>
+        <location filename="mainwindow.cpp" line="226"/>
         <source>scale: %1</source>
         <translation>масштаб: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="192"/>
+        <location filename="mainwindow.cpp" line="204"/>
         <source> - error</source>
-        <translation>- ошибка</translation>
+        <translation> - ошибка</translation>
     </message>
 </context>
 <context>

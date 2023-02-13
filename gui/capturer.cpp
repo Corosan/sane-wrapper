@@ -1,26 +1,61 @@
 #include "capturer.h"
 
-#include <QCoreApplication>
 #include <QEvent>
+#include <QCoreApplication>
 
 #include <exception>
 #include <cstring>
 #include <stdexcept>
 #include <algorithm>
 
-class GrayImageBuilder : public IImageBuilder {
+namespace {
+
+constexpr auto roundUp (auto val, auto den) {
+    return val / den + (val % den ? 1 : 0);
+};
+
+class ImageBuilderBase : public IImageBuilder {
+public:
+    virtual void feedData(std::span<const unsigned char> data) final {
+        feedDataImpl(data);
+        m_bytesProcessed += (int)data.size();
+    }
+
+    std::variant<int, double> getProgress() final {
+        if (m_totalLinesCount > 0)
+            return 100.0 * m_scanLine / m_totalLinesCount;
+        return m_bytesProcessed;
+    }
+
+protected:
     ::SANE_Parameters m_scanParams;
     IImageHolder& m_imageHolder;
     int m_scanLine = 0;
+    int m_bytesProcessed = 0;
+    int m_totalLinesCount = -1;
+
+    ImageBuilderBase(const ::SANE_Parameters& params, IImageHolder& imageHolder)
+        : m_scanParams(params)
+        , m_imageHolder(imageHolder) {
+    }
+
+    virtual void feedDataImpl(std::span<const unsigned char> data) = 0;
+};
+
+class GrayImageBuilder final : public ImageBuilderBase {
     int m_linePos = 0;
 
 public:
     GrayImageBuilder(const ::SANE_Parameters& params, IImageHolder& imageHolder, int heightHint)
-        : m_scanParams(params)
-        , m_imageHolder(imageHolder) {
+        : ImageBuilderBase(params, imageHolder) {
         int width = params.pixels_per_line;
-        // If height is not known, let's start from square image and adjust height on the flight
-        int height = params.lines > 0 ? params.lines : heightHint > 0 ? heightHint : width;
+        int height = params.lines > 0 ? params.lines : heightHint;
+
+        if (height > 0)
+            m_totalLinesCount = height;
+        else
+            // If height is not known, let's start from square image and adjust height on the flight
+            height = width;
 
         if (params.depth == 1) {
             QImage img(width, height, QImage::Format_Mono);
@@ -32,18 +67,19 @@ public:
             QImage img(width, height, QImage::Format_RGB32);
             img.fill(Qt::white);
             m_imageHolder.modifier().setImage(std::move(img));
-        } else if (params.depth == 16) {
+        } else {
             QImage img(width, height, QImage::Format_RGBX64);
             img.fill(Qt::white);
             m_imageHolder.modifier().setImage(std::move(img));
         }
     }
 
+private:
     void newFrame(const ::SANE_Parameters& params) override {
         throw std::runtime_error("unexpected new frame for gray image");
     }
 
-    void feedData(std::span<const unsigned char> data) override {
+    void feedDataImpl(std::span<const unsigned char> data) override {
         auto modifier = m_imageHolder.modifier();
 
         if (m_scanParams.depth == 1) {
@@ -78,20 +114,23 @@ public:
                 }
             }
         } else if (m_scanParams.depth == 16) {
-            const auto endPos = modifier.width();
+            const auto endPos = modifier.width() * 2;
 
+            // TODO: need to verify. My device doesn't provide data with such color depth
             while (! data.empty()) {
                 auto toProcessBytes = std::min(endPos - m_linePos, (int)data.size());
-                auto destPtr = modifier.scanLine(m_scanLine, m_linePos, toProcessBytes) + m_linePos * 8;
+                auto interPos = m_linePos % 2;
+                auto destPtr = modifier.scanLine(m_scanLine, m_linePos / 2, roundUp(toProcessBytes, 2))
+                        + m_linePos / 2 * 8 + interPos;
                 for (auto srcPtr = data.data(), srcEnd = data.data() + toProcessBytes; srcPtr < srcEnd; ++srcPtr) {
-                    *destPtr++ = *srcPtr;
-                    *destPtr++ = *(srcPtr+1);
-                    *destPtr++ = *srcPtr;
-                    *destPtr++ = *(srcPtr+1);
-                    *destPtr++ = *srcPtr;
-                    *destPtr++ = *(srcPtr+1);
-                    *destPtr++ = '\xff';
-                    *destPtr++ = '\xff';
+                    *destPtr = *srcPtr;
+                    *(destPtr + 2) = *srcPtr;
+                    *(destPtr + 4) = *srcPtr;
+                    *(destPtr + 6) = '\xff';
+                    if ((interPos = (interPos + 1) % 2) == 0)
+                        destPtr += 8;
+                    else
+                        ++destPtr;
                 }
                 data = data.subspan(toProcessBytes);
                 if ((m_linePos += toProcessBytes) == endPos) {
@@ -102,38 +141,95 @@ public:
         }
     }
 
-    unsigned short getFinalHeight() override {
+    int getFinalHeight() override {
         return m_scanLine + (m_linePos != 0 ? 1 : 0);
     }
 };
 
-class InterleavedColorImageBuilder : public IImageBuilder {
-    ::SANE_Parameters m_scanParams;
-    IImageHolder& m_imageHolder;
-    int m_scanLine = 0;
+class InterleavedColorImageBuilder : public ImageBuilderBase {
     int m_linePos = 0;
 
 public:
     InterleavedColorImageBuilder(const ::SANE_Parameters& params, IImageHolder& imageHolder, int heightHint)
-        : m_scanParams(params)
-        , m_imageHolder(imageHolder) {
+        : ImageBuilderBase(params, imageHolder) {
+        int width = params.pixels_per_line;
+        int height = params.lines > 0 ? params.lines : heightHint;
 
+        if (height > 0)
+            m_totalLinesCount = height;
+        else
+            // If height is not known, let's start from square image and adjust height on the flight
+            height = width;
+
+        if (params.depth == 1)
+            throw std::runtime_error("unsupported color depth=1 by interleaved color image builder");
+        else if (params.depth == 8) {
+            QImage img(width, height, QImage::Format_RGB32);
+            img.fill(Qt::white);
+            m_imageHolder.modifier().setImage(std::move(img));
+        } else {
+            QImage img(width, height, QImage::Format_RGBX64);
+            img.fill(Qt::white);
+            m_imageHolder.modifier().setImage(std::move(img));
+        }
     }
 
     void newFrame(const ::SANE_Parameters& params) override {
         throw std::runtime_error("unexpected new frame for interleaved color image");
     }
 
-    void feedData(std::span<const unsigned char> data) override {
+    void feedDataImpl(std::span<const unsigned char> data) override {
+        auto modifier = m_imageHolder.modifier();
+
+        if (m_scanParams.depth == 8) {
+            // m_linePos points to a channel inside a pixel, like [R,G,B], [R,G,B], ...
+            const auto endPos = modifier.width() * 3;
+
+            auto toProcessBytes = std::min(endPos - m_linePos, (int)data.size());
+            auto interPos = m_linePos % 3;
+            auto destPtr = modifier.scanLine(m_scanLine, m_linePos / 3, roundUp(toProcessBytes, 3))
+                    + m_linePos / 3 * 4 + interPos;
+            for (auto srcPtr = data.data(), srcEnd = data.data() + toProcessBytes; srcPtr < srcEnd;) {
+                *destPtr++ = *srcPtr++;
+                if ((interPos = (interPos + 1) % 3) == 0)
+                    *destPtr++ = '\xff';
+            }
+            data = data.subspan(toProcessBytes);
+            if ((m_linePos += toProcessBytes) == endPos) {
+                m_linePos = 0;
+                ++m_scanLine;
+            }
+        } else if (m_scanParams.depth == 16) {
+            // m_linePos points to a channel inside a pixel, like [R16,G16,B16], [R16,G16,B16], ...
+            const auto endPos = modifier.width() * 6;
+
+            // TODO: need to verify. My device doesn't provide data with such color depth
+            auto toProcessBytes = std::min(endPos - m_linePos, (int)data.size());
+            auto interPos = m_linePos % 6;
+            auto destPtr = modifier.scanLine(m_scanLine, m_linePos / 6, roundUp(toProcessBytes, 6))
+                    + m_linePos / 6 * 8 + interPos;
+            for (auto srcPtr = data.data(), srcEnd = data.data() + toProcessBytes; srcPtr < srcEnd;) {
+                *destPtr++ = *srcPtr++;
+                if ((interPos = (interPos + 1) % 6) == 0) {
+                    *destPtr++ = '\xff';
+                    *destPtr++ = '\xff';
+                }
+            }
+            data = data.subspan(toProcessBytes);
+            if ((m_linePos += toProcessBytes) == endPos) {
+                m_linePos = 0;
+                ++m_scanLine;
+            }
+        }
     }
 
-    unsigned short getFinalHeight() override {
+    int getFinalHeight() override {
         return m_scanLine + (m_linePos != 0 ? 1 : 0);
     }
 };
 
 QScopedPointer<IImageBuilder> createBuilder(
-    const ::SANE_Parameters& params, IImageHolder& imageHolder, int heightHint = -1) {
+    const ::SANE_Parameters& params, IImageHolder& imageHolder, int heightHint) {
     if (params.depth != 1 && params.depth != 8 && params.depth != 16)
         throw std::runtime_error("unsupported image depth " + std::to_string(params.depth)
             + " bits per pixel");
@@ -146,6 +242,8 @@ QScopedPointer<IImageBuilder> createBuilder(
     throw std::runtime_error("unable to decode image with unknown format id="
         + std::to_string(params.format));
 }
+
+} // ns anonymous
 
 //--------------------------------------------------------------------------------------------------
 Capturer::Capturer(vg_sane::device& device, IImageHolder& imageHolder, QObject *parent)
@@ -179,8 +277,9 @@ void Capturer::wrappedCall(F&& f, QString msg, Args&& ... args) {
     }
 }
 
-void Capturer::start() {
+void Capturer::start(int lineCountHint) {
     m_isCancelRequested = false;
+    m_lineCountHint = lineCountHint;
     startInner();
 }
 
@@ -214,10 +313,16 @@ void Capturer::processScanningParameters() {
 
     try {
         if (! m_imageBuilder) {
-            auto p = createBuilder(*scanParams, m_imageHolder);
+            auto p = createBuilder(*scanParams, m_imageHolder, m_lineCountHint);
             m_imageBuilder.swap(p);
         } else
             m_imageBuilder->newFrame(*scanParams);
+
+        auto prgs = m_imageBuilder->getProgress();
+        if (auto p = get_if<double>(&prgs))
+            emit progress(*p);
+        else
+            emit progress(get<int>(prgs));
     } catch (...) {
         m_lastError = std::current_exception();
         m_lastErrorContext = tr("Can't accept new image frame: %1");
@@ -256,6 +361,12 @@ void Capturer::processImageData() {
         }
     } else if (! m_isCancelRequested && ! m_lastError) {
         m_imageBuilder->feedData({chunk.begin(), chunk.end()});
+
+        auto prgs = m_imageBuilder->getProgress();
+        if (auto p = get_if<double>(&prgs))
+            emit progress(*p);
+        else
+            emit progress(get<int>(prgs));
     }
 }
 

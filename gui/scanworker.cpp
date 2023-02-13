@@ -4,7 +4,9 @@
 #include <QPalette>
 #include <QLocale>
 #include <QBrush>
+#include <QtMath>
 
+#include <cstring>
 #include <algorithm>
 
 DeviceListModel::DeviceListModel(vg_sane::lib::ptr_t lib_ptr, QObject* parent)
@@ -436,4 +438,62 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
     }
 
     return res;
+}
+
+QRect DeviceOptionModel::getScanAreaPx() const {
+    double resolutionDpi = -1.0;
+    double tl_x, tl_y, br_x, br_y;
+    int axisUnit;
+    bool axisUnitSet = false;
+    int pointsFound = 0;
+
+    auto setOptTo = [this](const ::SANE_Option_Descriptor* descrPtr, auto optInd, auto& dest){
+        if (auto val = std::get<2>(m_device.get_option(optInd)); val.size() == 1) {
+            if (descrPtr->type == SANE_TYPE_INT)
+                dest = *val.begin();
+            else if (descrPtr->type == SANE_TYPE_FIXED)
+                dest = saneFixedToDouble(*val.begin());
+            else
+                return false;
+        }
+        return false;
+    };
+
+    for (const auto [optInd, descrPtr] : m_optionDescriptors) {
+        if (descrPtr->unit == SANE_UNIT_DPI && std::strcmp(descrPtr->name, "resolution") == 0) {
+            setOptTo(descrPtr, optInd, resolutionDpi);
+            continue;
+        }
+
+        if (descrPtr->unit == SANE_UNIT_PIXEL || descrPtr->unit == SANE_UNIT_MM) {
+            int b = 1;
+            for (auto [name, dest] : {std::make_pair("tl-x", &tl_x), std::make_pair("tl-y", &tl_y),
+                        std::make_pair("br-x", &br_x), std::make_pair("br-y", &br_y)}) {
+                if (std::strcmp(descrPtr->name, name) == 0) {
+                    if (! axisUnitSet) {
+                        axisUnit = true;
+                        axisUnit = descrPtr->unit;
+                    }
+                    if (axisUnit != descrPtr->unit)
+                        continue;
+
+                    if (setOptTo(descrPtr, optInd, *dest))
+                        pointsFound |= b;
+                    break;
+                }
+                b <<= 1;
+            }
+        }
+    }
+
+    auto mmToPx = [resolutionDpi](auto val){ return val * resolutionDpi / 25.4; };
+
+    if (pointsFound == 0b1111) {
+        if (axisUnit == SANE_UNIT_PIXEL)
+            return QRect(tl_x, tl_y, br_x - tl_x, br_y - tl_y);
+        else if (resolutionDpi > 0.0)
+            return QRect(qFloor(mmToPx(tl_x)), qFloor(mmToPx(tl_y)),
+                qCeil(mmToPx(br_x - tl_x)), qCeil(mmToPx(br_y - tl_y)));
+    }
+    return {};
 }

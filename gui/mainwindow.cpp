@@ -162,15 +162,27 @@ void MainWindow::optionButtonPressed(const QModelIndex& index) {
 void MainWindow::on_actionStart_triggered() {
     m_imageCapturer.reset(new Capturer(m_scannerDevice, *m_ui->scrollAreaWidgetContents));
     Q_ASSERT(connect(m_imageCapturer.get(), &Capturer::finished, this, &MainWindow::scannedImageGot));
+    Q_ASSERT(connect(m_imageCapturer.get(), &Capturer::progress, this, &MainWindow::scanProgress));
 
-    static_cast<DeviceOptionModel*>(m_ui->tableView_device_opts->model())->enable(false);
+    auto model = static_cast<DeviceOptionModel*>(m_ui->tableView_device_opts->model());
+    QRect scanArea = model->getScanAreaPx();
+
+    model->enable(false);
     m_ui->comboBox_devices->setEnabled(false);
     m_ui->btnReloadDevs->setEnabled(false);
     m_ui->actionStop->setEnabled(true);
     m_ui->actionStart->setEnabled(false);
     m_modeStatusLabel->setText(tr("Scanning..."));
 
-    m_imageCapturer->start();
+    int lineCountHint = scanArea.isValid() ? scanArea.height(): -1;
+    m_imageCapturer->start(lineCountHint);
+}
+
+void MainWindow::scanProgress(QVariant prgs) {
+    if ((QMetaType::Type)prgs.type() == QMetaType::Double)
+        m_modeStatusLabel->setText(tr("Scanning... %L1%").arg(prgs.toDouble(), 0, 'f', 1));
+    else
+        m_modeStatusLabel->setText(tr("Scanning... %1 bytes").arg(prgs.toInt()));
 }
 
 void MainWindow::on_actionStop_triggered() {

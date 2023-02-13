@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
+#include <QRect>
 
 #include <sane_wrapper.h>
 
@@ -119,6 +120,9 @@ public:
     }
 
     void enable(bool val = true);
+
+    // Assumed to be called after all options have been read via standard data() accessor
+    QRect getScanAreaPx() const;
 
 private:
     vg_sane::device& m_device;

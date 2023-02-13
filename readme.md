@@ -53,3 +53,6 @@ the middle of scanning normally between reading pieces of data - it blocks until
 its work. Too much code and efforts to get cancelling to work - looks like HP backend developers
 didn't pay enough attention on this.
 
+8. Assuming (7) there is no way to properly cancel scanning process if a device has been
+disconnected accidentally. Reading operation just blocks infinitely - nobody can force it to return
+with any code.

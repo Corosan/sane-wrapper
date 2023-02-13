@@ -4,6 +4,7 @@
 
 #include <QMainWindow>
 #include <QLabel>
+#include <QVariant>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
 #include <QStyledItemDelegate>
@@ -28,6 +29,7 @@ private slots:
     void optionModelError(QString);
     void scannedImageGot(bool, QString);
     void drawingScaleChanged(float);
+    void scanProgress(QVariant);
 
     void on_btnReloadDevs_clicked();
     void on_comboBox_devices_currentIndexChanged(int index);

@@ -301,7 +301,9 @@ void device::start_scanning(std::function<void()> cb) {
     // Let's wait while the worker thread is started and passed some lines of initialization
     std::unique_lock lock{m_scanning_state_mutex};
     m_internal_state_waiting.wait(lock,
-        [this](){ return m_scanning_state == scanning_state::initializing; });
+        [this](){ return
+            m_scanning_state == scanning_state::initializing
+            || m_scanning_state == scanning_state::starting; });
 }
 
 void device::cancel_scanning(cancel_mode c_mode) {
@@ -314,11 +316,13 @@ void device::cancel_scanning(cancel_mode c_mode) {
 
         std::unique_lock lock{m_scanning_state_mutex};
         if (m_scanning_state == scanning_state::scanning) {
-            if (m_use_asynchronous_mode)
+            if (m_use_asynchronous_mode) {
                 // Cancel mode doesn't matter if current device supports asynchronous reading
                 // and it has been initialized successfully - it should work perfectly fine
                 // in this case without other tricks with ::sane_cancel() call.
-                ::write(m_waiter_pipes[1], "\0", 1);
+                auto r = ::write(m_waiter_pipes[1], "\0", 1);
+                (void)r;
+            }
 #ifndef SANE_PP_STUB
 #ifdef SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT
             else if (c_mode == cancel_mode::via_signal)
