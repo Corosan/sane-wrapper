@@ -8,6 +8,11 @@ struct IImageHolder {
     /*!
      * \brief The class for making elementary modifications on an internal image representation and
      *        tracking what should be updated later
+     *
+     * The interface is intended to be used by an image capturer getting data from a scanner device.
+     * A capturer can set initial underlying image when it knows image properties like color depth.
+     * It can modify raw scan lines of the underlying image, change its height (if precise height
+     * is unknown initially).
      */
     class ImageModifier {
         static constexpr int s_growHeight = 32;

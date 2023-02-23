@@ -10,11 +10,11 @@
 #include <sane_wrapper.h>
 
 /*!
-   \brief The The Model part of Model/View Framework representing all available devices connected to
-          the machine this program is running on.
-
-   The class can generate exceptions from non-Qt methods which request data from underlying SANE
-   wrapper library.
+ * \brief The The Model part of Model/View Framework representing all available devices connected to
+ *        the machine this program is running on.
+ *
+ * The class can generate exceptions from non-Qt methods which request data from underlying SANE
+ * wrapper library.
  */
 class DeviceListModel : public QAbstractListModel {
     Q_OBJECT
@@ -31,6 +31,12 @@ public:
     int rowCount(const QModelIndex &parent) const override;
     QVariant data(const QModelIndex &index, int role) const override;
 
+    /**
+     * @brief update a list of known devices
+     *
+     * The model doesn't re-check devices connected to the box at background. This method should be
+     * called to do this.
+     */
     void update();
     vg_sane::device openDevice(int index) const;
 
@@ -71,7 +77,11 @@ Q_DECLARE_METATYPE(double_data_constraint)
 Q_DECLARE_METATYPE(double_data_list_constraint)
 
 /*!
-   \brief The Model part of Model/View Framework representing all options available from specific device
+ * \brief The Model part of Model/View Framework representing all options available from specific
+ * scanner device
+ *
+ * The model can be in enabled and disabled state. Disabled model just shows options in 'disabled'
+ * GUI state not allowing to change them. Used when the scanner actually makes its job.
  */
 class DeviceOptionModel : public QAbstractTableModel {
     Q_OBJECT
@@ -87,19 +97,25 @@ public:
     };
 
     /*!
-       \brief Additional roles available for requesting from this Model
+     * \brief Additional roles available for requesting from this Model
      */
     enum DeviceInfoRole {
         /*!
-           \brief This role returns QVariant with optionally one of XXX_constraint types declared above
+         * \brief This role returns QVariant with optionally one of XXX_constraint types declared above
          */
         ConstraintRole = Qt::UserRole,
         /*!
-           \brief This role returns QVariant with bool = true if the cell should be displayed as a button
+         * \brief This role returns QVariant with bool = true if the cell should be displayed as a button
          */
         ButtonRole = Qt::UserRole + 1
     };
 
+    /*!
+     * \brief Create the model to be linked with specified device
+     *
+     * The device should be alive all the lifetime of this model object. All access/modification
+     * operations are considered short-time so executed synchronously.
+     */
     explicit DeviceOptionModel(vg_sane::device& device, QObject* parent = nullptr);
 
     int rowCount(const QModelIndex &parent) const override;
@@ -119,9 +135,17 @@ public:
         return QAbstractTableModel::headerData(section, orientation, role);
     }
 
+    /*!
+     * \brief enables or disables this model thus making it editable / non-editable
+     */
     void enable(bool val = true);
 
-    // Assumed to be called after all options have been read via standard data() accessor
+    /*!
+     * \brief calculates position of scanned area in a scanner pixels based on well-known
+     *        properties of a scanner like DPI.
+     *
+     * Assumed to be called after all options have been read via standard data() accessor.
+     */
     QRect getScanAreaPx() const;
 
 private:

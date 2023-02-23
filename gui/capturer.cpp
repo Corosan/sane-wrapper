@@ -326,7 +326,7 @@ void Capturer::processScanningParameters() {
     } catch (...) {
         m_lastError = std::current_exception();
         m_lastErrorContext = tr("Can't accept new image frame: %1");
-        m_scannerDevice.cancel_scanning(s_useFastCancelling);
+        m_scannerDevice.cancel_scanning(s_cancelScanningMode);
     }
 }
 
@@ -372,5 +372,5 @@ void Capturer::processImageData() {
 
 void Capturer::cancel() {
     m_isCancelRequested = true;
-    m_scannerDevice.cancel_scanning(s_useFastCancelling);
+    m_scannerDevice.cancel_scanning(s_cancelScanningMode);
 }

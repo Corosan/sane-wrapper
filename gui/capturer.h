@@ -50,7 +50,7 @@ public:
     ~Capturer();
 
 private:
-    static constexpr auto s_useFastCancelling = vg_sane::device::cancel_mode::safe;
+    static constexpr auto s_cancelScanningMode = vg_sane::device::cancel_mode::safe;
 
     vg_sane::device& m_scannerDevice;
     IImageHolder& m_imageHolder;

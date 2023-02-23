@@ -17,6 +17,7 @@
 #include <QItemEditorCreatorBase>
 #include <QFrame>
 #include <QCloseEvent>
+#include <QScrollBar>
 
 #include <QtGlobal>
 #include <QtDebug>

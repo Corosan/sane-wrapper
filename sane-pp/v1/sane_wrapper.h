@@ -36,11 +36,12 @@ using devices_t = std::ranges::subrange<const ::SANE_Device**>;
 using logger_sink_t = std::function<void(LogLevel, std::string_view)>;
 
 /**
- * A holder of various Sane types. Indexed as:
- *   [0] (std::monostate) - for SANE_TYPE_BUTTON, SANE_TYPE_GROUP
- *   [1] (::SANE_Word&) - for SANE_TYPE_BOOL
- *   [2] (std::span<::SANE_Word>) - for SANE_TYPE_INT, SANE_TYPE_FIXED (they could be arrays)
- *   [3] (::SANE_String) - for SANE_TYPE_STRING
+ * A holder type of various SANE types. Indexed as:
+ *     * [0] (std::monostate) - for SANE_TYPE_BUTTON, SANE_TYPE_GROUP
+ *     * [1] (::SANE_Word&) - for SANE_TYPE_BOOL
+ *     * [2] (std::span<::SANE_Word>) - for SANE_TYPE_INT, SANE_TYPE_FIXED (they could be arrays)
+ *     * [3] (::SANE_String) - for SANE_TYPE_STRING
+ *
  * Underlying types are exposed here via C++ wrapper public interface for increasing efficiency
  * because the C library can slighly modify an option value even while a caller wants to set it for
  * a device. But it's still a design question: whether it's better to fully isolate underlying
@@ -59,7 +60,7 @@ inline const char* to_string(LogLevel sev) {
 }
 
 /**
- * Represents Sane library wrapper which is a singleton for the whole process. So the object can't
+ * Represents SANE library wrapper which is a singleton for the whole process. So the object can't
  * be created via constructor but instead is returned as a smart pointer by calling instance() method.
  * Only one object exists at any time. Any device object got from it internally saves this singleton
  * from deletion even if no other pointers to the library exist.
@@ -74,7 +75,7 @@ public:
     static ptr_t instance();
 
     /**
-     * @returns forward-iterable range of Sane device infos. No caching, each call to this method
+     * @returns random-iterable range of SANE device infos. No caching, each call to this method
      *    makes a call to underlying C library.
      */
     devices_t get_device_infos() const;
@@ -87,6 +88,10 @@ public:
      */
     device open_device(const char* name);
 
+    /**
+     * Set optional callback which will be used to send various logging information. The callback
+     * should be thread-safe - more than one thread can call it simultaneously.
+     */
     void set_logger_sink(logger_sink_t cb = {}) {
         m_logger_sink = cb;
     }
