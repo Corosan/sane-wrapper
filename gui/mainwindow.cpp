@@ -18,6 +18,9 @@
 #include <QFrame>
 #include <QCloseEvent>
 
+#include <QtGlobal>
+#include <QtDebug>
+
 #include <cmath>
 #include <memory>
 
@@ -160,6 +163,8 @@ void MainWindow::optionButtonPressed(const QModelIndex& index) {
 }
 
 void MainWindow::on_actionStart_triggered() {
+    qDebug() << "action::start";
+
     m_imageCapturer.reset(new Capturer(m_scannerDevice, *m_ui->scrollAreaWidgetContents));
     Q_ASSERT(connect(m_imageCapturer.get(), &Capturer::finished, this, &MainWindow::scannedImageGot));
     Q_ASSERT(connect(m_imageCapturer.get(), &Capturer::progress, this, &MainWindow::scanProgress));
@@ -173,6 +178,8 @@ void MainWindow::on_actionStart_triggered() {
     m_ui->actionStop->setEnabled(true);
     m_ui->actionStart->setEnabled(false);
     m_modeStatusLabel->setText(tr("Scanning..."));
+
+    qDebug() << "action::start - calling capturer::start";
 
     int lineCountHint = scanArea.isValid() ? scanArea.height(): -1;
     m_imageCapturer->start(lineCountHint);
@@ -191,6 +198,8 @@ void MainWindow::on_actionStop_triggered() {
 }
 
 void MainWindow::scannedImageGot(bool status, QString errMsg) {
+    qDebug() << "scanning finished, status =" << status;
+
     m_imageCapturer.reset();
 
     static_cast<DeviceOptionModel*>(m_ui->tableView_device_opts->model())->enable(true);

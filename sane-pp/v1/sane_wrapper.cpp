@@ -301,9 +301,7 @@ void device::start_scanning(std::function<void()> cb) {
     // Let's wait while the worker thread is started and passed some lines of initialization
     std::unique_lock lock{m_scanning_state_mutex};
     m_internal_state_waiting.wait(lock,
-        [this](){ return
-            m_scanning_state == scanning_state::initializing
-            || m_scanning_state == scanning_state::starting; });
+        [this](){ return m_scanning_state != scanning_state::idle; });
 }
 
 void device::cancel_scanning(cancel_mode c_mode) {
@@ -405,9 +403,6 @@ void device::do_scanning(std::stop_token stop_token) {
     g_device_handle = m_handle;
 #endif
 
-    m_scanning_state = scanning_state::initializing;
-    m_internal_state_waiting.notify_all();
-
     m_lib_internal->log(LogLevel::Debug, "background thread for scanning started");
 
     try {
@@ -417,6 +412,7 @@ void device::do_scanning(std::stop_token stop_token) {
         m_sample_image_offset = 0;
 
         m_scanning_state = scanning_state::starting;
+        m_internal_state_waiting.notify_all();
         m_scanning_state_notifier();
 
         std::this_thread::sleep_for(500ms);
@@ -432,9 +428,11 @@ void device::do_scanning(std::stop_token stop_token) {
         m_lib_internal->log(LogLevel::Debug, "parameters got, going to extract test data in synchronous mode");
 
         m_scanning_state = scanning_state::scanning;
+        m_internal_state_waiting.notify_all();
         m_scanning_state_notifier();
 #else
         m_scanning_state = scanning_state::starting;
+        m_internal_state.waiting.notify_all();
         m_scanning_state_notifier();
 
         details::checked_call("unable to start scanning", &::sane_start, m_handle);
@@ -478,6 +476,7 @@ void device::do_scanning(std::stop_token stop_token) {
         }
 
         m_scanning_state = scanning_state::scanning;
+        m_internal_state.waiting.notify_all();
         m_scanning_state_notifier();
 #endif
 
@@ -506,9 +505,9 @@ void device::do_scanning(std::stop_token stop_token) {
                         + " bytes at offset " + std::to_string(was_read_totally); });
 
 #ifdef SANE_PP_STUB
-            auto was_read = std::min({chunk.size(), std::size(details::g_sample_image) - m_sample_image_offset, (size_t)11});
+            was_read = std::min({chunk.size(), std::size(details::g_sample_image) - m_sample_image_offset, (size_t)11});
             std::copy(details::g_sample_image + m_sample_image_offset,
-                details::g_sample_image + m_sample_image_offset + to_read, chunk.data());
+                details::g_sample_image + m_sample_image_offset + was_read, chunk.data());
             m_sample_image_offset += was_read;
             std::this_thread::sleep_for(500ms);
             chunk.resize(was_read);

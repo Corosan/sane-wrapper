@@ -4,45 +4,45 @@
 <context>
     <name>Capturer</name>
     <message>
-        <location filename="capturer.cpp" line="276"/>
+        <location filename="capturer.cpp" line="274"/>
         <source>%1:
 %2</source>
         <translation>%1:
 %2</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="278"/>
+        <location filename="capturer.cpp" line="276"/>
         <source>%1; no additional info</source>
         <translation>%1; нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="295"/>
+        <location filename="capturer.cpp" line="293"/>
         <source>Can&apos;t start scanning on device &quot;%1&quot;</source>
         <translation>Не удаётся запустить сканирование на устройстве &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="306"/>
+        <location filename="capturer.cpp" line="304"/>
         <source>Can&apos;t get actual image scanning parameters</source>
         <translation>Не удаётся получить текущие параметры сканирования изображения</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="330"/>
+        <location filename="capturer.cpp" line="328"/>
         <source>Can&apos;t accept new image frame: %1</source>
         <translation>Невозможно принять новый кадр изображения: %1</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="341"/>
+        <location filename="capturer.cpp" line="339"/>
         <source>Can&apos;t get another captured image data</source>
         <oldsource>Can&apos;t get and process another captured image data</oldsource>
         <translation>Не удаётся получить следующую порцию данных изображения</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="353"/>
+        <location filename="capturer.cpp" line="351"/>
         <source>&lt;no data&gt;</source>
         <translation>&lt;нет данных&gt;</translation>
     </message>
     <message>
-        <location filename="capturer.cpp" line="346"/>
+        <location filename="capturer.cpp" line="344"/>
         <source>Operation cancelled</source>
         <translation>Операция отменена</translation>
     </message>
@@ -121,130 +121,130 @@
         <translation>Сканнер</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="110"/>
+        <location filename="mainwindow.ui" line="113"/>
         <source>Capture</source>
         <translation>Захват</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="130"/>
+        <location filename="mainwindow.ui" line="133"/>
         <source>Device</source>
         <translation>Устройство</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="158"/>
+        <location filename="mainwindow.ui" line="161"/>
         <source>Vendor:</source>
         <translation>Производитель:</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="175"/>
+        <location filename="mainwindow.ui" line="178"/>
         <source>Model:</source>
         <translation>Модель:</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="192"/>
+        <location filename="mainwindow.ui" line="195"/>
         <source>Type:</source>
         <translation>Тип:</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="211"/>
+        <location filename="mainwindow.ui" line="214"/>
         <source>Parameters</source>
         <translation>Параметры</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="229"/>
+        <location filename="mainwindow.ui" line="232"/>
         <source>toolBar</source>
         <translation>Панель инструментов</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="245"/>
+        <location filename="mainwindow.ui" line="250"/>
         <source>Start</source>
         <translation>Старт</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="253"/>
+        <location filename="mainwindow.ui" line="258"/>
         <source>Stop</source>
         <translation>Стоп</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="258"/>
+        <location filename="mainwindow.ui" line="263"/>
         <source>ZoomIn</source>
         <translation>Приблизить</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="263"/>
+        <location filename="mainwindow.ui" line="268"/>
         <source>ZoomOut</source>
         <translation>Отдалить</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="67"/>
+        <location filename="mainwindow.cpp" line="70"/>
         <source>Unable to update a list of devices: %1</source>
         <translation>Не удаётся обновить список устройств: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="70"/>
+        <location filename="mainwindow.cpp" line="73"/>
         <source>Unable to update a list of devices, no additional info</source>
         <translation>Не удаётся обновить список устройств, нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="116"/>
+        <location filename="mainwindow.cpp" line="119"/>
         <source>Unable to open device &quot;%1&quot;: %2</source>
         <translation>Не удаётся открыть устройство &quot;%1&quot;: %2</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="121"/>
+        <location filename="mainwindow.cpp" line="124"/>
         <source>Unable to open device &quot;%1&quot;, no additional info</source>
         <translation>Не удаётся открыть устройство &quot;%1&quot;: нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="132"/>
+        <location filename="mainwindow.cpp" line="135"/>
         <source>Unable to observe device &quot;%1&quot; options: %2</source>
         <translation>Не удаётся прочитать опции устройства &quot;%1&quot;: %2</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="137"/>
+        <location filename="mainwindow.cpp" line="140"/>
         <source>Unable to observe device &quot;%1&quot; options, no additional info</source>
         <translation>Не удаётся прочитать опции устройства &quot;%1&quot;, нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="152"/>
+        <location filename="mainwindow.cpp" line="155"/>
         <source>Error happened while changing scanner options. Try to re-open the device. Additional details:
 %1</source>
         <translation>Произошла ошибка во время установки опций сканнера. Попробуйте переоткрыть устройство. Дополнительные детали:
 %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="175"/>
+        <location filename="mainwindow.cpp" line="180"/>
         <source>Scanning...</source>
         <translation>Сканирование...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="183"/>
+        <location filename="mainwindow.cpp" line="190"/>
         <source>Scanning... %L1%</source>
         <oldsource>Scanning... %1%%</oldsource>
         <translation>Сканирование... %L1%</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="185"/>
+        <location filename="mainwindow.cpp" line="192"/>
         <source>Scanning... %1 bytes</source>
         <translation>Сканирование... %1 байт</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="189"/>
+        <location filename="mainwindow.cpp" line="196"/>
         <source>Cancelling...</source>
         <translation>Отмена...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="210"/>
+        <location filename="mainwindow.cpp" line="219"/>
         <source>The application can&apos;t be closed while scanning operation is in progress</source>
         <translation>Нельзя закрыть приложение пока запущено сканирование</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="226"/>
+        <location filename="mainwindow.cpp" line="235"/>
         <source>scale: %1</source>
         <translation>масштаб: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="204"/>
+        <location filename="mainwindow.cpp" line="213"/>
         <source> - error</source>
         <translation> - ошибка</translation>
     </message>

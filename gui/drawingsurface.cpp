@@ -8,7 +8,11 @@
 #include <QLinearGradient>
 #include <QPoint>
 
+#include <QtGlobal>
+#include <QtDebug>
+
 #include <cstring>
+#include <cmath>
 #include <algorithm>
 
 void IImageHolder::ImageModifier::setHeight(int height) {
@@ -22,9 +26,8 @@ void IImageHolder::ImageModifier::setHeight(int height) {
 }
 
 unsigned char* IImageHolder::ImageModifier::scanLine(int i, int leftAffectedPx, int affectedPxCount) {
-    if (m_imageHolder->image().height() <= i) {
+    if (m_imageHolder->image().height() <= i)
         setHeight(i + s_growHeight);
-    }
 
     m_imageUpdateRect |= QRect(leftAffectedPx, i, affectedPxCount, i);
     return m_imageHolder->image().scanLine(i);
@@ -97,10 +100,31 @@ void DrawingSurface::updateAll() {
     update();
 }
 
+namespace {
+
+QPoint dividePoints(QPoint p, float scale, bool roundUp) {
+    if (roundUp)
+        return QPoint(std::ceil(p.x() / scale), std::ceil(p.y() / scale));
+    else
+        return QPoint(std::floor(p.x() / scale), std::floor(p.y() / scale));
+}
+
+QSize dividePoints(QSize p, float scale, bool roundUp) {
+    if (roundUp)
+        return QSize(std::ceil(p.width() / scale), std::ceil(p.height() / scale));
+    else
+        return QSize(std::floor(p.width() / scale), std::floor(p.height() / scale));
+}
+
+} // ns anonymous
+
 void DrawingSurface::paintEvent(QPaintEvent* ev) {
     QPainter painter(this);
 
     const QSize imageDisplaySize = m_mainImage.size() * m_scale;
+
+    // Display gradient borders around the main image
+    //
 
     if (! QRect(0, 0, m_marginWidth, m_marginWidth).intersected(ev->rect()).isEmpty()) {
         painter.fillRect(0, 0, m_marginWidth, m_marginWidth, m_segmentBrushes[0]);
@@ -136,10 +160,16 @@ void DrawingSurface::paintEvent(QPaintEvent* ev) {
 
     const QPoint tl(m_marginWidth, m_marginWidth);
 
+    // Display the main image
+    //
+
     // What should be updated on a screen somewhere on a place where the image is located
     auto imageDisplayRect = QRect(tl, imageDisplaySize).intersected(ev->rect());
-    // Which part of original image should be taken for drawing it on a screen
-    QRect imageRect((imageDisplayRect.topLeft() - tl) / m_scale, imageDisplayRect.size() / m_scale + QSize(1, 1));
+    // Which part of original image should be taken for drawing it on a screen. Top-level point is shifted
+    // to most top and most left place while been converted to integer. Size should converted up to 2 points
+    // down-right in order to cover the whole space under image.
+    QRect imageRect(dividePoints(imageDisplayRect.topLeft() - tl, m_scale, /*roundUp*/ false),
+            dividePoints(imageDisplayRect.size(), m_scale, /*roundUp*/ true) + QSize(1, 1));
     // Let's guarantee that the part of an image doesn't exceed the image itself
     imageRect = m_mainImage.rect().intersected(imageRect);
     // Transform original image coordinates back to a screen coordinates

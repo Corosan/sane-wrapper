@@ -23,7 +23,7 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>24</height>
+        <height>32</height>
        </size>
       </property>
       <property name="styleSheet">
@@ -36,7 +36,7 @@
      <widget class="QWidget" name="widget" native="true">
       <property name="minimumSize">
        <size>
-        <width>24</width>
+        <width>32</width>
         <height>0</height>
        </size>
       </property>
@@ -50,11 +50,14 @@
       <property name="widgetResizable">
        <bool>true</bool>
       </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
       <widget class="DrawingSurface" name="scrollAreaWidgetContents">
        <property name="geometry">
         <rect>
-         <x>0</x>
-         <y>0</y>
+         <x>250</x>
+         <y>214</y>
          <width>16</width>
          <height>16</height>
         </rect>
@@ -72,7 +75,7 @@
      <widget class="QWidget" name="widget_3" native="true">
       <property name="minimumSize">
        <size>
-        <width>24</width>
+        <width>32</width>
         <height>0</height>
        </size>
       </property>
@@ -86,7 +89,7 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>24</height>
+        <height>32</height>
        </size>
       </property>
       <property name="styleSheet">
@@ -236,6 +239,8 @@
    </attribute>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
+   <addaction name="actionStart"/>
+   <addaction name="actionStop"/>
   </widget>
   <action name="actionStart">
    <property name="enabled">

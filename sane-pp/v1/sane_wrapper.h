@@ -262,13 +262,12 @@ private:
     using deletion_cb_t = std::function<void(const std::string&)>;
 
     enum class scanning_state : char {
-        idle, initializing, starting, scanning
+        idle, starting, scanning
     };
 
     static const char* state_to_str(scanning_state val) {
         switch (val) {
         case scanning_state::idle: return "[idle]";
-        case scanning_state::initializing: return "[initializing]";
         case scanning_state::starting: return "[starting]";
         case scanning_state::scanning: return "[scanning]";
         default: return "[???]";
