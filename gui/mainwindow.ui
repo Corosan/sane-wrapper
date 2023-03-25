@@ -19,81 +19,47 @@
      <number>0</number>
     </property>
     <item row="0" column="1">
-     <widget class="QWidget" name="widget_2" native="true">
+     <widget class="Ruller" name="ruller_top" native="true">
       <property name="minimumSize">
        <size>
         <width>0</width>
         <height>32</height>
        </size>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(170, 170, 127);
-</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QWidget" name="widget" native="true">
-      <property name="minimumSize">
-       <size>
-        <width>32</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(170, 170, 127);</string>
       </property>
      </widget>
     </item>
     <item row="1" column="1">
      <widget class="QScrollArea" name="scrollArea">
-      <property name="widgetResizable">
-       <bool>true</bool>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <widget class="DrawingSurface" name="scrollAreaWidgetContents">
-       <property name="geometry">
-        <rect>
-         <x>250</x>
-         <y>214</y>
-         <width>16</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-      </widget>
+      <widget class="DrawingSurface" name="scrollAreaWidgetContents"/>
      </widget>
     </item>
     <item row="1" column="2">
-     <widget class="QWidget" name="widget_3" native="true">
+     <widget class="Ruller" name="ruller_right" native="true">
       <property name="minimumSize">
        <size>
         <width>32</width>
         <height>0</height>
        </size>
       </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(170, 170, 127);</string>
-      </property>
      </widget>
     </item>
     <item row="2" column="1">
-     <widget class="QWidget" name="widget_4" native="true">
+     <widget class="Ruller" name="ruller_bottom" native="true">
       <property name="minimumSize">
        <size>
         <width>0</width>
         <height>32</height>
        </size>
       </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(170, 170, 127);</string>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="Ruller" name="ruller_left" native="true">
+      <property name="minimumSize">
+       <size>
+        <width>32</width>
+        <height>0</height>
+       </size>
       </property>
      </widget>
     </item>
@@ -274,6 +240,12 @@
    <class>DrawingSurface</class>
    <extends>QWidget</extends>
    <header>drawingsurface.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>Ruller</class>
+   <extends>QWidget</extends>
+   <header>ruller.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

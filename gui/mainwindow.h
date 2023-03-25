@@ -2,14 +2,16 @@
 
 #include "scanworker.h"
 
+#include <QScopedPointer>
+#include <QString>
+#include <QRect>
+#include <QVariant>
 #include <QMainWindow>
 #include <QLabel>
-#include <QVariant>
 #include <QAbstractListModel>
 #include <QAbstractTableModel>
 #include <QStyledItemDelegate>
 #include <QItemEditorFactory>
-#include <QScopedPointer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -28,7 +30,9 @@ private slots:
     void optionButtonPressed(const QModelIndex&);
     void optionModelError(QString);
     void scannedImageGot(bool, QString);
-    void drawingScaleChanged(float);
+    void drawingImageScaleChanged(float);
+    void drawingImageMoved(QPoint, QPoint);
+    void drawingImageGeometryChanged(QRect);
     void scanProgress(QVariant);
 
     void on_btnReloadDevs_clicked();
@@ -42,9 +46,12 @@ private:
     QScopedPointer<Ui::MainWindow> m_ui;
     QLabel* m_scaleStatusLabel;
     QLabel* m_modeStatusLabel;
+    QLabel* m_rullerUnitsLabel;
 
     vg_sane::lib::ptr_t m_saneLibWrapperPtr;
     vg_sane::device m_scannerDevice;
+    double m_lastScannedPicDPI = -1.0;
+    double m_scannerToScreenDPIScale = 1.0;
 
     QScopedPointer<Capturer> m_imageCapturer;
 

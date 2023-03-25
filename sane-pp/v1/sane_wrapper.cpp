@@ -118,7 +118,8 @@ device lib::open_device(const char* name) {
         h[3]->values<::SANE_Fixed>() = {1 << SANE_FIXED_SCALE_SHIFT, 2 << SANE_FIXED_SCALE_SHIFT, 5 << (SANE_FIXED_SCALE_SHIFT - 1)};
         h[4]->str() = "test string";
     } else {
-        // No properties
+        h = {std::make_shared<details::stub_option>("resolution", "resolution", "", SANE_TYPE_INT, 0, 1, SANE_UNIT_DPI)};
+        h[0]->value<::SANE_Word>() = 10;
     }
 #else
     details::checked_call([&name](){ return std::string{"unable to get device \""} + name + '"'; },

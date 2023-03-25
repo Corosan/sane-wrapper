@@ -440,7 +440,7 @@ bool DeviceOptionModel::setData(const QModelIndex &index, const QVariant &value,
     return res;
 }
 
-QRect DeviceOptionModel::getScanAreaPx() const {
+QRect DeviceOptionModel::getScanAreaPx(double* dpiPtr) const {
     double resolutionDpi = -1.0;
     double tl_x, tl_y, br_x, br_y;
     int axisUnit;
@@ -455,13 +455,15 @@ QRect DeviceOptionModel::getScanAreaPx() const {
                 dest = saneFixedToDouble(*val.begin());
             else
                 return false;
+            return true;
         }
         return false;
     };
 
     for (const auto [optInd, descrPtr] : m_optionDescriptors) {
         if (descrPtr->unit == SANE_UNIT_DPI && std::strcmp(descrPtr->name, "resolution") == 0) {
-            setOptTo(descrPtr, optInd, resolutionDpi);
+            if (setOptTo(descrPtr, optInd, resolutionDpi) && dpiPtr)
+                *dpiPtr = resolutionDpi;
             continue;
         }
 

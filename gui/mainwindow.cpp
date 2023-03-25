@@ -32,6 +32,11 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
 
     m_ui->setupUi(this);
 
+    m_ui->ruller_top->setOrientation(Ruller::Orientation::Top);
+    m_ui->ruller_right->setOrientation(Ruller::Orientation::Right);
+    m_ui->ruller_bottom->setOrientation(Ruller::Orientation::Bottom);
+    m_ui->ruller_left->setOrientation(Ruller::Orientation::Left);
+
     m_ui->statusbar->addWidget((m_scaleStatusLabel = new QLabel(m_ui->statusbar)), 0);
 
     auto statusBarSep1 = new QFrame(m_ui->statusbar);
@@ -40,8 +45,23 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
 
     m_ui->statusbar->addWidget((m_modeStatusLabel = new QLabel(m_ui->statusbar)), 0);
 
-    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::scaleChanged, this, &MainWindow::drawingScaleChanged));
-    drawingScaleChanged(m_ui->scrollAreaWidgetContents->getScale());
+    statusBarSep1 = new QFrame(m_ui->statusbar);
+    statusBarSep1->setFrameShape(QFrame::VLine);
+    m_ui->statusbar->addWidget(statusBarSep1, 0);
+
+    m_ui->statusbar->addWidget((m_rullerUnitsLabel = new QLabel(m_ui->statusbar)), 0);
+
+    // TODO: is it worth to switch on these optimizations as long as the whole underlying picture
+    // in drawing surface is refreshed?
+    m_ui->scrollAreaWidgetContents->setAutoFillBackground(false);
+    m_ui->scrollAreaWidgetContents->setAttribute(Qt::WA_NoSystemBackground);
+    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::scaleChanged,
+        this, &MainWindow::drawingImageScaleChanged));
+    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::mainImageGeometryChanged,
+        this, &MainWindow::drawingImageGeometryChanged));
+    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::mainImageMoved,
+        this, &MainWindow::drawingImageMoved));
+    drawingImageScaleChanged(m_ui->scrollAreaWidgetContents->getScale());
 
     auto deviceListModel = new DeviceListModel(m_saneLibWrapperPtr, this);
     m_ui->comboBox_devices->setModel(deviceListModel);
@@ -170,8 +190,18 @@ void MainWindow::on_actionStart_triggered() {
     Q_ASSERT(connect(m_imageCapturer.get(), &Capturer::finished, this, &MainWindow::scannedImageGot));
     Q_ASSERT(connect(m_imageCapturer.get(), &Capturer::progress, this, &MainWindow::scanProgress));
 
+    m_lastScannedPicDPI = -1.0;
     auto model = static_cast<DeviceOptionModel*>(m_ui->tableView_device_opts->model());
-    QRect scanArea = model->getScanAreaPx();
+    QRect scanArea = model->getScanAreaPx(&m_lastScannedPicDPI);
+
+    if (m_lastScannedPicDPI > 0.0)
+        m_scannerToScreenDPIScale = physicalDpiX() / m_lastScannedPicDPI;
+    else
+        m_scannerToScreenDPIScale = 1.0;
+
+    // Set initial scale for displaying scanned image as 1-1 to real world (as long as the scanner DPI and the screen
+    // resolution are reported correctly)
+    m_ui->scrollAreaWidgetContents->setScale(m_scannerToScreenDPIScale);
 
     model->enable(false);
     m_ui->comboBox_devices->setEnabled(false);
@@ -232,8 +262,34 @@ void MainWindow::on_actionZoomOut_triggered() {
     m_ui->scrollAreaWidgetContents->setScale(m_ui->scrollAreaWidgetContents->getScale() / 2);
 }
 
-void MainWindow::drawingScaleChanged(float scale) {
-    m_scaleStatusLabel->setText(tr("scale: %1").arg(scale));
+void MainWindow::drawingImageScaleChanged(float scale) {
+    // The scaling is reported relative to real world in a sense that all the geometry of a scanned image
+    // is calculated respective to the screen DPI
+    m_scaleStatusLabel->setText(tr("scale: %1").arg(QLocale().toString(scale / m_scannerToScreenDPIScale)));
+}
+
+void MainWindow::drawingImageGeometryChanged(QRect geometry) {
+    m_ui->ruller_top->setParams(geometry.x(), geometry.width(),
+        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
+    m_ui->ruller_bottom->setParams(geometry.x(), geometry.width(),
+        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
+    m_ui->ruller_left->setParams(geometry.y(), geometry.height(),
+        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
+    m_ui->ruller_right->setParams(geometry.y(), geometry.height(),
+        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
+
+    m_rullerUnitsLabel->setText(m_ui->ruller_top->isCm() ? tr("cm") : tr("mm"));
+}
+
+void MainWindow::drawingImageMoved(QPoint pos, QPoint oldPos) {
+    if (pos.x() != oldPos.x()) {
+        m_ui->ruller_top->scrollBy(pos.x() - oldPos.x());
+        m_ui->ruller_bottom->scrollBy(pos.x() - oldPos.x());
+    }
+    if (pos.y() != oldPos.y()) {
+        m_ui->ruller_left->scrollBy(pos.y() - oldPos.y());
+        m_ui->ruller_right->scrollBy(pos.y() - oldPos.y());
+    }
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -2,6 +2,8 @@
 
 #include <QPainter>
 #include <QPaintEvent>
+#include <QMoveEvent>
+#include <QResizeEvent>
 #include <QtGlobal>
 #include <QBrush>
 #include <QRadialGradient>
@@ -41,6 +43,8 @@ DrawingSurface::DrawingSurface(QWidget *parent)
     //m_mainImage.fill(Qt::white);
     //m_scale = 2.0f;
     //recalcSize();
+
+    //setAttribute(Qt::WA_NoSystemBackground);
 }
 
 void DrawingSurface::setScale(float val) {
@@ -96,8 +100,16 @@ void DrawingSurface::updateAll() {
     gr7.setStops(grStops);
     m_segmentBrushes[7] = QBrush(gr7);
 
-    updateGeometry();
-    update();
+    // TODO: repainting of this inner widget is far from efficient - the whole area is repainted
+    // on scrolling which is strange and redundant. QScrollArea::scrollContentsBy() (this method
+    // should be called by scroll bars, as I understand) calls private class's updateWidgetPosition()
+    // which calls this inner widget's move(...). Further steps are too complicated for superficial
+    // analysis - why the whole widget is repainted eventually.
+
+    //updateGeometry();
+    //update();
+    resize(m_size);
+//    emit mainImageGeometryChanged(QRect(pos() + QPoint(m_marginWidth, m_marginWidth), imageDisplaySize));
 }
 
 namespace {
@@ -178,4 +190,16 @@ void DrawingSurface::paintEvent(QPaintEvent* ev) {
     if (! imageDisplayRect.isEmpty()) {
         painter.drawImage(imageDisplayRect, m_mainImage, imageRect);
     }
+}
+
+void DrawingSurface::moveEvent(QMoveEvent* ev) {
+    //qDebug() << "move:" << ev->pos();
+    emit mainImageMoved(ev->pos() + QPoint(m_marginWidth, m_marginWidth),
+        ev->oldPos() + QPoint(m_marginWidth, m_marginWidth));
+}
+
+void DrawingSurface::resizeEvent(QResizeEvent* ev) {
+    //qDebug() << "resize:" << ev->size();
+    emit mainImageGeometryChanged(QRect(pos() + QPoint(m_marginWidth, m_marginWidth),
+        ev->size() - QSize(m_marginWidth * 2, m_marginWidth * 2)));
 }

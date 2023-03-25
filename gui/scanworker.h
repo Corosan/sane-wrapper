@@ -146,7 +146,7 @@ public:
      *
      * Assumed to be called after all options have been read via standard data() accessor.
      */
-    QRect getScanAreaPx() const;
+    QRect getScanAreaPx(double* dpiPtr = nullptr) const;
 
 private:
     vg_sane::device& m_device;

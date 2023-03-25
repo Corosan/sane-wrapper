@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QSize>
+#include <QRect>
 #include <QWidget>
 #include <QImage>
 #include <QBrush>
@@ -97,6 +99,8 @@ public:
 
 protected:
     void paintEvent(QPaintEvent*) override;
+    void moveEvent(QMoveEvent*) override;
+    void resizeEvent(QResizeEvent*) override;
 
 private:
     QImage m_mainImage;
@@ -119,4 +123,6 @@ public slots:
 
 signals:
     void scaleChanged(float);
+    void mainImageMoved(QPoint, QPoint);
+    void mainImageGeometryChanged(QRect);
 };
