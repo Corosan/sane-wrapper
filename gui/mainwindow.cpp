@@ -18,6 +18,8 @@
 #include <QFrame>
 #include <QCloseEvent>
 #include <QScrollBar>
+#include <QFileDialog>
+#include <QFileInfo>
 
 #include <QtGlobal>
 #include <QtDebug>
@@ -37,19 +39,25 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     m_ui->ruller_bottom->setOrientation(Ruller::Orientation::Bottom);
     m_ui->ruller_left->setOrientation(Ruller::Orientation::Left);
 
-    m_ui->statusbar->addWidget((m_scaleStatusLabel = new QLabel(m_ui->statusbar)), 0);
+    m_ui->statusbar->addWidget(new QLabel(m_ui->statusbar), 1);
 
-    auto statusBarSep1 = new QFrame(m_ui->statusbar);
-    statusBarSep1->setFrameShape(QFrame::VLine);
-    m_ui->statusbar->addWidget(statusBarSep1, 0);
+    auto statusBarSep = new QFrame(m_ui->statusbar);
+    statusBarSep->setFrameShape(QFrame::VLine);
+    m_ui->statusbar->addPermanentWidget(statusBarSep, 0);
 
-    m_ui->statusbar->addWidget((m_modeStatusLabel = new QLabel(m_ui->statusbar)), 0);
+    m_ui->statusbar->addPermanentWidget((m_scaleStatusLabel = new QLabel(m_ui->statusbar)), 0);
 
-    statusBarSep1 = new QFrame(m_ui->statusbar);
-    statusBarSep1->setFrameShape(QFrame::VLine);
-    m_ui->statusbar->addWidget(statusBarSep1, 0);
+    statusBarSep = new QFrame(m_ui->statusbar);
+    statusBarSep->setFrameShape(QFrame::VLine);
+    m_ui->statusbar->addPermanentWidget(statusBarSep, 0);
 
-    m_ui->statusbar->addWidget((m_rullerUnitsLabel = new QLabel(m_ui->statusbar)), 0);
+    //m_ui->statusbar->addPermanentWidget((m_modeStatusLabel = new QLabel(m_ui->statusbar)), 0);
+
+    //statusBarSep1 = new QFrame(m_ui->statusbar);
+    //statusBarSep1->setFrameShape(QFrame::VLine);
+    //m_ui->statusbar->addWidget(statusBarSep1, 0);
+
+    m_ui->statusbar->addPermanentWidget((m_rullerUnitsLabel = new QLabel(m_ui->statusbar)), 0);
 
     // TODO: is it worth to switch on these optimizations as long as the whole underlying picture
     // in drawing surface is refreshed?
@@ -112,7 +120,7 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
         m_ui->label_cap_model->setEnabled(false);
         m_ui->label_cap_type->setEnabled(false);
         m_ui->label_cap_vendor->setEnabled(false);
-        m_ui->actionStart->setEnabled(false);
+        m_ui->actionStartScan->setEnabled(false);
     } else {
         m_ui->label_cap_model->setEnabled(true);
         m_ui->label_cap_type->setEnabled(true);
@@ -167,7 +175,7 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
         if (fullyInitializedDevice)
             m_ui->tableView_device_opts->resizeColumnsToContents();
 
-        m_ui->actionStart->setEnabled(fullyInitializedDevice);
+        m_ui->actionStartScan->setEnabled(fullyInitializedDevice);
     }
 }
 
@@ -183,7 +191,7 @@ void MainWindow::optionButtonPressed(const QModelIndex& index) {
     static_cast<DeviceOptionModel*>(m_ui->tableView_device_opts->model())->setData(index, true, Qt::EditRole);
 }
 
-void MainWindow::on_actionStart_triggered() {
+void MainWindow::on_actionStartScan_triggered() {
     qDebug() << "action::start";
 
     m_imageCapturer.reset(new Capturer(m_scannerDevice, *m_ui->scrollAreaWidgetContents));
@@ -206,9 +214,16 @@ void MainWindow::on_actionStart_triggered() {
     model->enable(false);
     m_ui->comboBox_devices->setEnabled(false);
     m_ui->btnReloadDevs->setEnabled(false);
-    m_ui->actionStop->setEnabled(true);
-    m_ui->actionStart->setEnabled(false);
-    m_modeStatusLabel->setText(tr("Scanning..."));
+    m_ui->actionStopScan->setEnabled(true);
+    m_ui->actionStartScan->setEnabled(false);
+    m_ui->actionSave->setEnabled(false);
+
+    m_ui->actionMirrorVert->setEnabled(false);
+    m_ui->actionMirrorHorz->setEnabled(false);
+    m_ui->actionRotateClockwise->setEnabled(false);
+    m_ui->actionRotateCounterClockwise->setEnabled(false);
+
+    m_ui->statusbar->showMessage(tr("Scanning..."));
 
     qDebug() << "action::start - calling capturer::start";
 
@@ -218,13 +233,13 @@ void MainWindow::on_actionStart_triggered() {
 
 void MainWindow::scanProgress(QVariant prgs) {
     if ((QMetaType::Type)prgs.type() == QMetaType::Double)
-        m_modeStatusLabel->setText(tr("Scanning... %L1%").arg(prgs.toDouble(), 0, 'f', 1));
+        m_ui->statusbar->showMessage(tr("Scanning... %L1%").arg(prgs.toDouble(), 0, 'f', 1));
     else
-        m_modeStatusLabel->setText(tr("Scanning... %1 bytes").arg(prgs.toInt()));
+        m_ui->statusbar->showMessage(tr("Scanning... %1 bytes").arg(prgs.toInt()));
 }
 
-void MainWindow::on_actionStop_triggered() {
-    m_modeStatusLabel->setText(tr("Cancelling..."));
+void MainWindow::on_actionStopScan_triggered() {
+    m_ui->statusbar->showMessage(tr("Cancelling..."));
     m_imageCapturer->cancel();
 }
 
@@ -236,12 +251,40 @@ void MainWindow::scannedImageGot(bool status, QString errMsg) {
     static_cast<DeviceOptionModel*>(m_ui->tableView_device_opts->model())->enable(true);
     m_ui->comboBox_devices->setEnabled(true);
     m_ui->btnReloadDevs->setEnabled(true);
-    m_ui->actionStop->setEnabled(false);
-    m_ui->actionStart->setEnabled(true);
-    m_modeStatusLabel->setText({});
+    m_ui->actionStopScan->setEnabled(false);
+    m_ui->actionStartScan->setEnabled(true);
+
+    m_ui->statusbar->clearMessage();
 
     if (! status)
         QMessageBox::critical(this, this->windowTitle() + tr(" - error"), errMsg);
+    else {
+        m_ui->actionSave->setEnabled(true);
+        m_ui->actionMirrorVert->setEnabled(true);
+        m_ui->actionMirrorHorz->setEnabled(true);
+        m_ui->actionRotateClockwise->setEnabled(true);
+        m_ui->actionRotateCounterClockwise->setEnabled(true);
+    }
+}
+
+void MainWindow::on_actionSave_triggered() {
+    auto pathToSave = QFileDialog::getSaveFileName(this, tr("Save Image to a file"), QString{},
+        tr("Jpeg images (*.jpg *.jpeg)(*.jpg *.jpeg);;Png images (*.png)(*.png);;All files (*.*)(*)"));
+
+    if (pathToSave.isEmpty())
+        return;
+
+    if (QFileInfo{pathToSave}.completeSuffix().isEmpty()) {
+        QMessageBox::critical(this, this->windowTitle(),
+            tr("Please provide destination file name with one of supported extensions (see filters in the save dialog)"));
+        return;
+    }
+
+    if (! m_ui->scrollAreaWidgetContents->getImage().save(pathToSave))
+        QMessageBox::critical(this, this->windowTitle(),
+            tr("Error happened during saving the image into:\n%1").arg(pathToSave));
+    else
+        m_ui->statusbar->showMessage(tr("The image stored into %1").arg(pathToSave), 2000);
 }
 
 void MainWindow::closeEvent(QCloseEvent* ev) {
@@ -262,10 +305,26 @@ void MainWindow::on_actionZoomOut_triggered() {
     m_ui->scrollAreaWidgetContents->setScale(m_ui->scrollAreaWidgetContents->getScale() / 2);
 }
 
+void MainWindow::on_actionMirrorVert_triggered() {
+    m_ui->scrollAreaWidgetContents->mirror(true);
+}
+
+void MainWindow::on_actionMirrorHorz_triggered() {
+    m_ui->scrollAreaWidgetContents->mirror(false);
+}
+
+void MainWindow::on_actionRotateClockwise_triggered() {
+    m_ui->scrollAreaWidgetContents->rotate(true);
+}
+
+void MainWindow::on_actionRotateCounterClockwise_triggered() {
+    m_ui->scrollAreaWidgetContents->rotate(false);
+}
+
 void MainWindow::drawingImageScaleChanged(float scale) {
     // The scaling is reported relative to real world in a sense that all the geometry of a scanned image
     // is calculated respective to the screen DPI
-    m_scaleStatusLabel->setText(tr("scale: %1").arg(QLocale().toString(scale / m_scannerToScreenDPIScale)));
+    m_scaleStatusLabel->setText(tr("x%1").arg(QLocale().toString(scale / m_scannerToScreenDPIScale)));
 }
 
 void MainWindow::drawingImageGeometryChanged(QRect geometry) {
@@ -279,6 +338,9 @@ void MainWindow::drawingImageGeometryChanged(QRect geometry) {
         m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
 
     m_rullerUnitsLabel->setText(m_ui->ruller_top->isCm() ? tr("cm") : tr("mm"));
+
+    m_ui->actionZoomIn->setEnabled(geometry.isValid());
+    m_ui->actionZoomOut->setEnabled(geometry.isValid());
 }
 
 void MainWindow::drawingImageMoved(QPoint pos, QPoint oldPos) {

@@ -43,6 +43,14 @@ else()
       file(APPEND ${qmResourcesFile} "    <file alias=\"${qm_filename}\">${qm_file}</file>\n")
     endforeach(qm_file)
 
+    file(APPEND ${qmResourcesFile} "  </qresource>\n")
+
+    file(GLOB rcIconFiles ${CMAKE_SOURCE_DIR}/rc/icons/*)
+    file(APPEND ${qmResourcesFile} "  <qresource prefix=\"icons\">\n")
+    foreach(icon_file ${rcIconFiles})
+      get_filename_component(icon_filename ${icon_file} NAME)
+      file(APPEND ${qmResourcesFile} "    <file alias=\"${icon_filename}\">${icon_file}</file>\n")
+    endforeach()
     file(APPEND ${qmResourcesFile} "  </qresource>\n</RCC>\n")
 
     if(ANDROID)
@@ -69,7 +77,7 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(gui)
 endif()
 
-set(SANE_PP_STUB ON)
+# set(SANE_PP_STUB ON)
 # set(SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT ON)
 add_subdirectory(../sane-pp sane-pp)
 

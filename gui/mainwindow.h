@@ -37,10 +37,15 @@ private slots:
 
     void on_btnReloadDevs_clicked();
     void on_comboBox_devices_currentIndexChanged(int index);
-    void on_actionStart_triggered();
+    void on_actionStartScan_triggered();
+    void on_actionStopScan_triggered();
+    void on_actionSave_triggered();
     void on_actionZoomIn_triggered();
     void on_actionZoomOut_triggered();
-    void on_actionStop_triggered();
+    void on_actionMirrorVert_triggered();
+    void on_actionMirrorHorz_triggered();
+    void on_actionRotateClockwise_triggered();
+    void on_actionRotateCounterClockwise_triggered();
 
 private:
     QScopedPointer<Ui::MainWindow> m_ui;

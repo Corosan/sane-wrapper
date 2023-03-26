@@ -3,6 +3,9 @@
 #include <QEvent>
 #include <QCoreApplication>
 
+#include <QtGlobal>
+#include <QtDebug>
+
 #include <exception>
 #include <cstring>
 #include <stdexcept>
@@ -185,40 +188,54 @@ public:
             // m_linePos points to a channel inside a pixel, like [R,G,B], [R,G,B], ...
             const auto endPos = modifier.width() * 3;
 
-            auto toProcessBytes = std::min(endPos - m_linePos, (int)data.size());
-            auto interPos = m_linePos % 3;
-            auto destPtr = modifier.scanLine(m_scanLine, m_linePos / 3, roundUp(toProcessBytes, 3))
-                    + m_linePos / 3 * 4 + interPos;
-            for (auto srcPtr = data.data(), srcEnd = data.data() + toProcessBytes; srcPtr < srcEnd;) {
-                *destPtr++ = *srcPtr++;
-                if ((interPos = (interPos + 1) % 3) == 0)
-                    *destPtr++ = '\xff';
-            }
-            data = data.subspan(toProcessBytes);
-            if ((m_linePos += toProcessBytes) == endPos) {
-                m_linePos = 0;
-                ++m_scanLine;
+            while (! data.empty()) {
+                auto toProcessBytes = std::min(endPos - m_linePos, (int)data.size());
+                auto interPos = m_linePos % 3;
+                auto destPtr = reinterpret_cast<QRgb*>(
+                    modifier.scanLine(m_scanLine, m_linePos / 3, roundUp(toProcessBytes, 3))) + m_linePos / 3;
+
+                for (auto srcPtr = data.data(), srcEnd = data.data() + toProcessBytes; srcPtr < srcEnd;) {
+                    switch (interPos) {
+                    case 0: *destPtr = qRgb(*srcPtr++, 0, 0); break;
+                    case 1: *destPtr = qRgb(qRed(*destPtr), *srcPtr++, 0); break;
+                    case 2: *destPtr = qRgb(qRed(*destPtr), qGreen(*destPtr), *srcPtr++); ++destPtr; break;
+                    }
+                    interPos = (interPos + 1) % 3;
+                }
+                data = data.subspan(toProcessBytes);
+                if ((m_linePos += toProcessBytes) == endPos) {
+                    m_linePos = 0;
+                    ++m_scanLine;
+                }
             }
         } else if (m_scanParams.depth == 16) {
             // m_linePos points to a channel inside a pixel, like [R16,G16,B16], [R16,G16,B16], ...
             const auto endPos = modifier.width() * 6;
 
-            // TODO: need to verify. My device doesn't provide data with such color depth
-            auto toProcessBytes = std::min(endPos - m_linePos, (int)data.size());
-            auto interPos = m_linePos % 6;
-            auto destPtr = modifier.scanLine(m_scanLine, m_linePos / 6, roundUp(toProcessBytes, 6))
-                    + m_linePos / 6 * 8 + interPos;
-            for (auto srcPtr = data.data(), srcEnd = data.data() + toProcessBytes; srcPtr < srcEnd;) {
-                *destPtr++ = *srcPtr++;
-                if ((interPos = (interPos + 1) % 6) == 0) {
-                    *destPtr++ = '\xff';
-                    *destPtr++ = '\xff';
+            while (! data.empty()) {
+                // TODO: need to verify. My device doesn't provide data with such color depth
+                auto toProcessBytes = std::min(endPos - m_linePos, (int)data.size());
+                auto interPos = m_linePos % 6;
+                auto destPtr = reinterpret_cast<quint64*>(
+                    modifier.scanLine(m_scanLine, m_linePos / 6, roundUp(toProcessBytes, 6))) + m_linePos / 6;
+
+                for (auto srcPtr = data.data(), srcEnd = data.data() + toProcessBytes; srcPtr < srcEnd;) {
+                    const auto destRgba = QRgba64::fromRgba64(*destPtr);
+                    switch (interPos) {
+                    case 0: *destPtr = QRgba64::fromRgba64(*srcPtr++, 0, 0, 0); break;
+                    case 1: *destPtr = QRgba64::fromRgba64((*srcPtr++ << 8) | destRgba.red(), 0, 0, 0); break;
+                    case 2: *destPtr = QRgba64::fromRgba64(destRgba.red(), *srcPtr++, 0, 0); break;
+                    case 3: *destPtr = QRgba64::fromRgba64(destRgba.red(), (*srcPtr++ << 8) | destRgba.green(), 0, 0); break;
+                    case 4: *destPtr = QRgba64::fromRgba64(destRgba.red(), destRgba.green(), *srcPtr++, 0); break;
+                    case 5: *destPtr = QRgba64::fromRgba64(destRgba.red(), destRgba.green(), (*srcPtr++ << 8) | destRgba.blue(), 0); ++destPtr; break;
+                    }
+                    interPos = (interPos + 1) % 6;
                 }
-            }
-            data = data.subspan(toProcessBytes);
-            if ((m_linePos += toProcessBytes) == endPos) {
-                m_linePos = 0;
-                ++m_scanLine;
+                data = data.subspan(toProcessBytes);
+                if ((m_linePos += toProcessBytes) == endPos) {
+                    m_linePos = 0;
+                    ++m_scanLine;
+                }
             }
         }
     }
@@ -310,6 +327,14 @@ void Capturer::processScanningParameters() {
 
     m_isWaitingForScanningParameters = false;
     m_isLastFrame = scanParams->last_frame == SANE_TRUE;
+
+    qDebug() << "Capturer got new frame:"
+        << "\n  format:" << scanParams->format
+        << "\n  last_frame:" << scanParams->last_frame
+        << "\n  bytes_per_line:" << scanParams->bytes_per_line
+        << "\n  pixels_per_line:" << scanParams->pixels_per_line
+        << "\n  lines:" << scanParams->lines
+        << "\n  depth:" << scanParams->depth;
 
     try {
         if (! m_imageBuilder) {

@@ -30,7 +30,16 @@
     </item>
     <item row="1" column="1">
      <widget class="QScrollArea" name="scrollArea">
-      <widget class="DrawingSurface" name="scrollAreaWidgetContents"/>
+      <widget class="DrawingSurface" name="scrollAreaWidgetContents">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>0</width>
+         <height>0</height>
+        </rect>
+       </property>
+      </widget>
      </widget>
     </item>
     <item row="1" column="2">
@@ -74,14 +83,6 @@
      <height>34</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuCapture">
-    <property name="title">
-     <string>Capture</string>
-    </property>
-    <addaction name="actionStart"/>
-    <addaction name="actionStop"/>
-   </widget>
-   <addaction name="menuCapture"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockWidget">
@@ -106,8 +107,18 @@
           </item>
           <item>
            <widget class="QPushButton" name="btnReloadDevs">
-            <property name="text">
-             <string/>
+            <property name="icon">
+             <iconset resource="../build/gui.debug/qm/app.qrc">
+              <normaloff>:/icons/reload-24.png</normaloff>:/icons/reload-24.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>24</width>
+              <height>24</height>
+             </size>
+            </property>
+            <property name="shortcut">
+             <string>F5</string>
             </property>
            </widget>
           </item>
@@ -203,35 +214,95 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionStartScan"/>
+   <addaction name="actionStopScan"/>
+   <addaction name="actionSave"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
-   <addaction name="actionStart"/>
-   <addaction name="actionStop"/>
+   <addaction name="actionMirrorVert"/>
+   <addaction name="actionMirrorHorz"/>
+   <addaction name="actionRotateClockwise"/>
+   <addaction name="actionRotateCounterClockwise"/>
   </widget>
-  <action name="actionStart">
+  <action name="actionStartScan">
    <property name="enabled">
     <bool>false</bool>
    </property>
-   <property name="text">
-    <string>Start</string>
+   <property name="icon">
+    <iconset resource="../build/gui.debug/qm/app.qrc">
+     <normaloff>:/icons/scan.png</normaloff>:/icons/scan.png</iconset>
    </property>
   </action>
-  <action name="actionStop">
+  <action name="actionStopScan">
    <property name="enabled">
     <bool>false</bool>
    </property>
-   <property name="text">
-    <string>Stop</string>
+   <property name="icon">
+    <iconset resource="../build/gui.debug/qm/app.qrc">
+     <normaloff>:/icons/stop.png</normaloff>:/icons/stop.png</iconset>
    </property>
   </action>
   <action name="actionZoomIn">
-   <property name="text">
-    <string>ZoomIn</string>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../build/gui.debug/qm/app.qrc">
+     <normaloff>:/icons/zoom-in.png</normaloff>:/icons/zoom-in.png</iconset>
    </property>
   </action>
   <action name="actionZoomOut">
-   <property name="text">
-    <string>ZoomOut</string>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../build/gui.debug/qm/app.qrc">
+     <normaloff>:/icons/zoom-out.png</normaloff>:/icons/zoom-out.png</iconset>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../build/gui.debug/qm/app.qrc">
+     <normaloff>:/icons/save.png</normaloff>:/icons/save.png</iconset>
+   </property>
+  </action>
+  <action name="actionMirrorVert">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../build/gui.debug/qm/app.qrc">
+     <normaloff>:/icons/mirror-vert.png</normaloff>:/icons/mirror-vert.png</iconset>
+   </property>
+  </action>
+  <action name="actionMirrorHorz">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../build/gui.debug/qm/app.qrc">
+     <normaloff>:/icons/mirror-horz.png</normaloff>:/icons/mirror-horz.png</iconset>
+   </property>
+  </action>
+  <action name="actionRotateClockwise">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../build/gui.debug/qm/app.qrc">
+     <normaloff>:/icons/rotate-clock.png</normaloff>:/icons/rotate-clock.png</iconset>
+   </property>
+  </action>
+  <action name="actionRotateCounterClockwise">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../build/gui.debug/qm/app.qrc">
+     <normaloff>:/icons/rotate-counter-clock.png</normaloff>:/icons/rotate-counter-clock.png</iconset>
    </property>
   </action>
  </widget>
@@ -249,6 +320,8 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../build/gui.debug/qm/app.qrc"/>
+ </resources>
  <connections/>
 </ui>

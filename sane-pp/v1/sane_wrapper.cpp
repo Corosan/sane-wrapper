@@ -433,7 +433,7 @@ void device::do_scanning(std::stop_token stop_token) {
         m_scanning_state_notifier();
 #else
         m_scanning_state = scanning_state::starting;
-        m_internal_state.waiting.notify_all();
+        m_internal_state_waiting.notify_all();
         m_scanning_state_notifier();
 
         details::checked_call("unable to start scanning", &::sane_start, m_handle);
@@ -477,7 +477,7 @@ void device::do_scanning(std::stop_token stop_token) {
         }
 
         m_scanning_state = scanning_state::scanning;
-        m_internal_state.waiting.notify_all();
+        m_internal_state_waiting.notify_all();
         m_scanning_state_notifier();
 #endif
 

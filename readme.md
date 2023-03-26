@@ -8,6 +8,8 @@ project is an attempt to build C++ wrapper around it and minimal GUI using the w
 educational activity and can't be considered for any production cases so far. Sorry. You may be
 interesting in [Insane Library](https://gitlab.gnome.org/World/OpenPaperwork/libinsane) instead.
 
+![Scanner Main Window](docs/app-main-window.png)
+
 ## Notes
 
 1. It looks like SANE library doesn't make proper cleanup on sane_exit() call - calling it after the

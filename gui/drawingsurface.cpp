@@ -4,11 +4,11 @@
 #include <QPaintEvent>
 #include <QMoveEvent>
 #include <QResizeEvent>
-#include <QtGlobal>
 #include <QBrush>
 #include <QRadialGradient>
 #include <QLinearGradient>
 #include <QPoint>
+#include <QTransform>
 
 #include <QtGlobal>
 #include <QtDebug>
@@ -30,6 +30,8 @@ void IImageHolder::ImageModifier::setHeight(int height) {
 unsigned char* IImageHolder::ImageModifier::scanLine(int i, int leftAffectedPx, int affectedPxCount) {
     if (m_imageHolder->image().height() <= i)
         setHeight(i + s_growHeight);
+
+    qDebug() << "IImageHloder::scanLine - requested line" << i;
 
     m_imageUpdateRect |= QRect(leftAffectedPx, i, affectedPxCount, i);
     return m_imageHolder->image().scanLine(i);
@@ -110,6 +112,23 @@ void DrawingSurface::updateAll() {
     //update();
     resize(m_size);
 //    emit mainImageGeometryChanged(QRect(pos() + QPoint(m_marginWidth, m_marginWidth), imageDisplaySize));
+}
+
+void DrawingSurface::mirror(bool isVertical) {
+    if (isVertical)
+        m_mainImage = m_mainImage.mirrored(true, false);
+    else
+        m_mainImage = m_mainImage.mirrored();
+
+    update();
+}
+
+void DrawingSurface::rotate(bool isClockWise) {
+    QTransform tr;
+    tr.rotate(isClockWise ? 90.0 : -90.0);
+    m_mainImage = m_mainImage.transformed(tr);
+
+    updateAll();
 }
 
 namespace {

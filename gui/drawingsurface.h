@@ -97,6 +97,10 @@ public:
         return m_size;
     }
 
+    const QImage& getImage() const { return m_mainImage; }
+    void mirror(bool isVertical);
+    void rotate(bool isClockWise);
+
 protected:
     void paintEvent(QPaintEvent*) override;
     void moveEvent(QMoveEvent*) override;

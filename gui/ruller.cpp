@@ -48,8 +48,6 @@ void Ruller::setParams(int picOffsetPx, int picSizePx, float dpi, float scale) {
 }
 
 void Ruller::scrollBy(int delta) {
-    qDebug() << "ruller [" << m_orientation << "]: scrolled by =" << delta;
-
     m_picOffsetPx += delta;
 
     if (m_orientation == Orientation::Top || m_orientation == Orientation::Bottom)
@@ -60,8 +58,6 @@ void Ruller::scrollBy(int delta) {
 
 void Ruller::paintEvent(QPaintEvent* ev) {
     QPainter painter(this);
-
-    // qDebug() << ev->rect();
 
     // Draw border around the ruller
     //
@@ -74,8 +70,8 @@ void Ruller::paintEvent(QPaintEvent* ev) {
 
     const double InchMm = 25.4;
 
-    // Can't draw any reasonable ruller without info about DPI
     if (m_scannerDPI <= 0.0)
+        // Can't draw any reasonable ruller without info about DPI
         return;
 
     painter.setPen(QColor(0, 0, 0));
@@ -172,7 +168,7 @@ void Ruller::paintEvent(QPaintEvent* ev) {
             posPx = m_picOffsetPx + static_cast<int>((k + 0.5) * stepL);
 
             l = (m_orientation == Orientation::Top || m_orientation == Orientation::Bottom)
-                ? subStickLine.translated(posPx, 0) : subStickLine.translated(0, posPx);
+                ? smallStickLine.translated(posPx, 0) : smallStickLine.translated(0, posPx);
 
             painter.drawLine(l);
             //if (posPx >= m_picOffsetPx + m_picSizePx)
