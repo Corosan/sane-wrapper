@@ -6,6 +6,8 @@
 #include <QLocale>
 #include <QTranslator>
 #include <QMessageBox>
+#include <QSettings>
+#include <QLatin1String>
 
 #include <QtGlobal>
 #include <QtDebug>
@@ -16,15 +18,20 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
+    // This is recommended way to initialize locale-dependend translation. It works successfully
+    // only when my translation file doesn't include country part (_RU), only a language. It does
+    // so because my LANGUAGE environment variable contains as the first element the language "ru"
+    // without a country code: echo $LANGUAGE => "ru:en_US". I don't know yet is it right from OS
+    // internationalization point of view. I would say that "ru" translation could be the same
+    // for any country having "ru" people. But... the second item there "en_US" leads to a thought
+    // that it can be not so in general.
     QTranslator translator;
-    const QStringList uiLanguages = QLocale::system().uiLanguages();
-    for (const QString &locale : uiLanguages) {
-        const QString baseName = "gui_" + QLocale(locale).name();
-        if (translator.load(":/i18n/" + baseName)) {
-            app.installTranslator(&translator);
-            break;
-        }
-    }
+    if (translator.load(QLocale(), QLatin1String("gui"), QLatin1String("_"), QLatin1String(":/i18n")))
+        app.installTranslator(&translator);
+
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    app.setOrganizationName(QLatin1String("SG_House"));
+    app.setApplicationName(QLatin1String("sane-wrapper-gui"));
 
     vg_sane::lib::ptr_t saneLibWrapperPtr;
 

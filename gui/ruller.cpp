@@ -113,6 +113,9 @@ void Ruller::paintEvent(QPaintEvent* ev) {
 
     bool run = true;
 
+    // Draw major sticks, sub-sticks at 0.5 and minor sticks at 0.1 step
+    //
+
     do {
         int posPx = m_picOffsetPx + static_cast<int>(k * stepL);
 

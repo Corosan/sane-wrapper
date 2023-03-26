@@ -118,7 +118,7 @@
     <message>
         <location filename="mainwindow.ui" line="14"/>
         <source>Scanner</source>
-        <translation>Сканнер</translation>
+        <translation>Сканер</translation>
     </message>
     <message>
         <source>Capture</source>
@@ -130,32 +130,27 @@
         <translation>Устройство</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="121"/>
-        <source>F5</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="mainwindow.ui" line="138"/>
+        <location filename="mainwindow.ui" line="135"/>
         <source>Vendor:</source>
         <translation>Производитель:</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="155"/>
+        <location filename="mainwindow.ui" line="152"/>
         <source>Model:</source>
         <translation>Модель:</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="172"/>
+        <location filename="mainwindow.ui" line="169"/>
         <source>Type:</source>
         <translation>Тип:</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="191"/>
+        <location filename="mainwindow.ui" line="188"/>
         <source>Parameters</source>
         <translation>Параметры</translation>
     </message>
     <message>
-        <location filename="mainwindow.ui" line="209"/>
+        <location filename="mainwindow.ui" line="206"/>
         <source>toolBar</source>
         <translation>Панель инструментов</translation>
     </message>
@@ -176,116 +171,118 @@
         <translation type="vanished">Отдалить</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="99"/>
+        <location filename="mainwindow.cpp" line="98"/>
         <source>Unable to update a list of devices: %1</source>
         <translation>Не удаётся обновить список устройств: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="102"/>
+        <location filename="mainwindow.cpp" line="101"/>
         <source>Unable to update a list of devices, no additional info</source>
         <translation>Не удаётся обновить список устройств, нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="148"/>
+        <location filename="mainwindow.cpp" line="147"/>
         <source>Unable to open device &quot;%1&quot;: %2</source>
         <translation>Не удаётся открыть устройство &quot;%1&quot;: %2</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="153"/>
+        <location filename="mainwindow.cpp" line="152"/>
         <source>Unable to open device &quot;%1&quot;, no additional info</source>
         <translation>Не удаётся открыть устройство &quot;%1&quot;: нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="164"/>
+        <location filename="mainwindow.cpp" line="163"/>
         <source>Unable to observe device &quot;%1&quot; options: %2</source>
         <translation>Не удаётся прочитать опции устройства &quot;%1&quot;: %2</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="169"/>
+        <location filename="mainwindow.cpp" line="168"/>
         <source>Unable to observe device &quot;%1&quot; options, no additional info</source>
         <translation>Не удаётся прочитать опции устройства &quot;%1&quot;, нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="184"/>
+        <location filename="mainwindow.cpp" line="183"/>
         <source>Error happened while changing scanner options. Try to re-open the device. Additional details:
 %1</source>
         <translation>Произошла ошибка во время установки опций сканнера. Попробуйте переоткрыть устройство. Дополнительные детали:
 %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="226"/>
+        <location filename="mainwindow.cpp" line="225"/>
         <source>Scanning...</source>
         <translation>Сканирование...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="236"/>
+        <location filename="mainwindow.cpp" line="235"/>
         <source>Scanning... %L1%</source>
         <oldsource>Scanning... %1%%</oldsource>
         <translation>Сканирование... %L1%</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="238"/>
+        <location filename="mainwindow.cpp" line="237"/>
         <source>Scanning... %1 bytes</source>
         <translation>Сканирование... %1 байт</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="242"/>
+        <location filename="mainwindow.cpp" line="241"/>
         <source>Cancelling...</source>
         <translation>Отмена...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="271"/>
+        <location filename="mainwindow.cpp" line="270"/>
         <source>Save Image to a file</source>
-        <translation type="unfinished"></translation>
+        <translation>Запись изображения в файл</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="272"/>
+        <location filename="mainwindow.cpp" line="271"/>
         <source>Jpeg images (*.jpg *.jpeg)(*.jpg *.jpeg);;Png images (*.png)(*.png);;All files (*.*)(*)</source>
         <oldsource>Jpeg images (*.jpg *.jpeg)(*.jpg *.jpeg);;All files (*.*)(*)</oldsource>
-        <translation type="unfinished"></translation>
+        <translation>Изображения jpeg (*.jpg *.jpeg)(*.jpg *.jpeg);;Изображени png (*.png)(*.png);;Все файлы (*.*)(*)</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="279"/>
+        <location filename="mainwindow.cpp" line="278"/>
         <source>Please provide destination file name with one of supported extensions (see filters in the save dialog)</source>
-        <translation type="unfinished"></translation>
+        <translation>Пожалуйста укажите конечный файл с одним из поддерживаемых расширений (см. фильтры в диалоге сохранения)</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="285"/>
+        <location filename="mainwindow.cpp" line="284"/>
         <source>Error happened during saving the image into:
 %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка во время сохранения изображения в:
+%1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="287"/>
+        <location filename="mainwindow.cpp" line="286"/>
         <source>The image stored into %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Изображение сохранено в %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="293"/>
+        <location filename="mainwindow.cpp" line="292"/>
         <source>The application can&apos;t be closed while scanning operation is in progress</source>
         <translation>Нельзя закрыть приложение пока запущено сканирование</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="327"/>
-        <source>x%1</source>
-        <translation type="unfinished"></translation>
+        <location filename="mainwindow.cpp" line="330"/>
+        <source>x %1</source>
+        <oldsource>x%1</oldsource>
+        <translation>x %1</translation>
     </message>
     <message>
         <source>scale: %1</source>
         <translation type="vanished">масштаб: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="340"/>
+        <location filename="mainwindow.cpp" line="343"/>
         <source>cm</source>
         <translation>см</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="340"/>
+        <location filename="mainwindow.cpp" line="343"/>
         <source>mm</source>
         <translation>мм</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="260"/>
+        <location filename="mainwindow.cpp" line="265"/>
         <source> - error</source>
         <translation> - ошибка</translation>
     </message>
@@ -297,12 +294,12 @@
         <translation type="vanished">Тестовая строка</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="35"/>
+        <location filename="main.cpp" line="42"/>
         <source>Unable to initialize SANE lib: %1</source>
         <translation>Не удаётся проинициализировать библиотеку SANE: %1</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="40"/>
+        <location filename="main.cpp" line="47"/>
         <source>Unable to initialize SANE lib with unknown error</source>
         <translation>Не удаётся проинициализировать библиотеку SANE с неизвестной ошибкой</translation>
     </message>

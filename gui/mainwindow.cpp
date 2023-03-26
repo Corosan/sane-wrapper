@@ -20,6 +20,7 @@
 #include <QScrollBar>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QSettings>
 
 #include <QtGlobal>
 #include <QtDebug>
@@ -51,12 +52,6 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     statusBarSep->setFrameShape(QFrame::VLine);
     m_ui->statusbar->addPermanentWidget(statusBarSep, 0);
 
-    //m_ui->statusbar->addPermanentWidget((m_modeStatusLabel = new QLabel(m_ui->statusbar)), 0);
-
-    //statusBarSep1 = new QFrame(m_ui->statusbar);
-    //statusBarSep1->setFrameShape(QFrame::VLine);
-    //m_ui->statusbar->addWidget(statusBarSep1, 0);
-
     m_ui->statusbar->addPermanentWidget((m_rullerUnitsLabel = new QLabel(m_ui->statusbar)), 0);
 
     // TODO: is it worth to switch on these optimizations as long as the whole underlying picture
@@ -85,6 +80,10 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     Q_ASSERT(connect(delgt, &OptionItemDelegate::buttonPressed, this, &MainWindow::optionButtonPressed));
 
     delete oldDelegate;
+
+    QSettings s;
+    restoreGeometry(s.value("MainWindow/geometry").toByteArray());
+    restoreState(s.value("MainWindow/state").toByteArray());
 }
 
 MainWindow::~MainWindow() = default;
@@ -256,14 +255,14 @@ void MainWindow::scannedImageGot(bool status, QString errMsg) {
 
     m_ui->statusbar->clearMessage();
 
-    if (! status)
-        QMessageBox::critical(this, this->windowTitle() + tr(" - error"), errMsg);
-    else {
+    if (status) {
         m_ui->actionSave->setEnabled(true);
         m_ui->actionMirrorVert->setEnabled(true);
         m_ui->actionMirrorHorz->setEnabled(true);
         m_ui->actionRotateClockwise->setEnabled(true);
         m_ui->actionRotateCounterClockwise->setEnabled(true);
+    } else {
+        QMessageBox::critical(this, this->windowTitle() + tr(" - error"), errMsg);
     }
 }
 
@@ -292,8 +291,12 @@ void MainWindow::closeEvent(QCloseEvent* ev) {
         QMessageBox::information(this, this->windowTitle(),
             tr("The application can't be closed while scanning operation is in progress"));
         ev->ignore();
-    } else
+    } else {
+        QSettings s;
+        s.setValue("MainWindow/state", saveState());
+        s.setValue("MainWindow/geometry", saveGeometry());
         ev->accept();
+    }
 }
 
 void MainWindow::on_actionZoomIn_triggered() {
@@ -324,7 +327,7 @@ void MainWindow::on_actionRotateCounterClockwise_triggered() {
 void MainWindow::drawingImageScaleChanged(float scale) {
     // The scaling is reported relative to real world in a sense that all the geometry of a scanned image
     // is calculated respective to the screen DPI
-    m_scaleStatusLabel->setText(tr("x%1").arg(QLocale().toString(scale / m_scannerToScreenDPIScale)));
+    m_scaleStatusLabel->setText(tr("x %1").arg(QLocale().toString(scale / m_scannerToScreenDPIScale)));
 }
 
 void MainWindow::drawingImageGeometryChanged(QRect geometry) {

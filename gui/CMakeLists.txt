@@ -16,8 +16,7 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets LinguistTools REQUIRED)
 
 file(GLOB PROJECT_SOURCES *.h *.cpp *.ui)
 
-set(TS_FILES
-        gui_ru_RU.ts)
+set(TS_FILES gui_ru.ts)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(gui MANUAL_FINALIZATION ${PROJECT_SOURCES})
