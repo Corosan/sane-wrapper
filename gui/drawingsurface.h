@@ -4,7 +4,12 @@
 #include <QRect>
 #include <QWidget>
 #include <QImage>
+#include <QPixmap>
 #include <QBrush>
+#include <QPen>
+#include <QPoint>
+#include <QPointF>
+#include <QPair>
 
 struct IImageHolder {
     /*!
@@ -32,9 +37,9 @@ struct IImageHolder {
         ~ImageModifier() {
             if (m_imageHolder) {
                 if (m_doUpdateAll)
-                    m_imageHolder->updateAll();
+                    m_imageHolder->recalcImageGeometry();
                 else
-                    m_imageHolder->updateRect(m_imageUpdateRect);
+                    m_imageHolder->redrawImageRect(m_imageUpdateRect);
             }
         }
 
@@ -75,49 +80,96 @@ protected:
     /*!
      * \brief an implementer must guarantee a visual space displaying specified rect is updated
      */
-    virtual void updateRect(QRect) = 0;
+    virtual void redrawImageRect(const QRect&) = 0;
 
     /*!
-     * \brief an implementer must guarantee a whole virtual plane is redrawn because the image is
+     * \brief an implementer must guarantee a whole virtual plane is redrawn - the image is
      *        resized
      */
-    virtual void updateAll() = 0;
+    virtual void recalcImageGeometry() = 0;
 };
 
-
-class DrawingSurface : public QWidget, public IImageHolder
-{
+/*!
+ * \brief A scanned doc image holder and displaying widget with scrolling support
+ */
+class DrawingSurface : public QWidget, public IImageHolder {
     Q_OBJECT
+
     Q_PROPERTY(float scale READ getScale WRITE setScale NOTIFY scaleChanged)
 
 public:
     explicit DrawingSurface(QWidget *parent = nullptr);
 
-    QSize sizeHint() const override {
-        return m_size;
-    }
+    const QPen& getDashCursorPen() const { return m_dashCursorPen; }
+    QSize sizeHint() const override { return m_thisSurfaceSize; }
+    const QImage& getImage() const { return m_scannedDocImage; }
 
-    const QImage& getImage() const { return m_mainImage; }
+    // Available operations on the underlying image
+
     void mirror(bool isVertical);
     void rotate(bool isClockWise);
 
 protected:
     void paintEvent(QPaintEvent*) override;
+    void enterEvent(QEvent* event) override;
+    void leaveEvent(QEvent *event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
     void moveEvent(QMoveEvent*) override;
     void resizeEvent(QResizeEvent*) override;
 
 private:
-    QImage m_mainImage;
-    QSize m_size;
+    class DashedCursorLine {
+    public:
+        enum class Direction { Horizontal, Vertical };
+
+        explicit DashedCursorLine(DrawingSurface* parentWindow, Direction direction)
+            : m_parentWindow(parentWindow)
+            , m_direction(direction) {
+        }
+
+        void enterWindow(QPoint);
+        void leaveWindow();
+        void moveMouse(QMouseEvent*);
+        void draw(QPainter&, QPaintEvent*);
+
+    private:
+        DrawingSurface* const m_parentWindow;
+        const Direction m_direction;
+        int m_cursorPosition = -1;
+
+        QRect getCursorRect(int pos, bool bounding = false) const;
+        QPair<int, int> getCursorPosition(QPointF) const;
+    };
+
+    /*!
+     * \brief the main storage for an image being scanned
+     */
+    QImage m_scannedDocImage;
+
+    /*!
+     * \brief the scanned image prepared to be displayed (transformed and scaled accordingly)
+     */
+    QPixmap m_displayedPixmap;
+    QSize m_scannedDocImageDisplaySize;
+    QSize m_thisSurfaceSize;
     float m_scale = 1.0f;
     int m_marginWidth = 0;
-    QBrush m_segmentBrushes[8];
 
-    QImage& image() override {
-        return m_mainImage;
-    }
-    void updateRect(QRect) override;
-    void updateAll() override;
+    QBrush m_segmentBrushes[8];
+    QPen m_dashCursorPen;
+    DashedCursorLine m_horzDashCursor, m_vertDashCursor;
+
+    // IImageHolder interface implementation
+
+    QImage& image() override final { return m_scannedDocImage; }
+    void redrawImageRect(const QRect& r) override final { redrawScannedDocImage(r); }
+    void recalcImageGeometry() override final { recalcScannedDocImageGeometry(); }
+
+    // internal methods
+
+    void redrawScannedDocImage(const QRect&);
+    void recalcScannedDocImageGeometry();
+    void redrawRullerZoneInner(bool, int, int, int);
 
 public slots:
     float getScale() const {
@@ -127,6 +179,36 @@ public slots:
 
 signals:
     void scaleChanged(float);
-    void mainImageMoved(QPoint, QPoint);
-    void mainImageGeometryChanged(QRect);
+
+    /*!
+     * \param pNew is a new point inside the drawing surface's scroll area where
+     *             the scanned image is displayed after move
+     * \param pOld is an old point inside the drawing surface's scroll area where
+     *             the scanned image was displayed
+     */
+    void scannedDocImageMovedOnDisplay(QPoint pNew, QPoint pOld);
+
+    /*!
+     * \param r is a rectangular where the scanned image is located now inside
+     *          the scroll area of the drawing surface. r.x() and r.y() are negative
+     *          if the image is scrolled somewhere up and left.
+     */
+    void scannedDocImageDisplayGeometryChanged(QRect r);
+
+    /*!
+     * \brief request rullers to redraw their part in order to display a dashed line cursor
+     *        on a new position. All coordinates - realative to scanned doc surface display position
+     *
+     * \param isHorizontal denotes horizontal dashed line
+     */
+    void redrawRullerZone(bool isHorizontal, int startRedrawPos, int stopRedrawPos, int cursorPos);
 };
+
+
+inline QRect DrawingSurface::DashedCursorLine::getCursorRect(int pos, bool bounding) const {
+    // Anti-aliased renderer tries to draw line between -0.5 ... 0.5 of current position, so getting
+    // rect for paint invalidation should include -0.5 ... 0 part.
+    return (m_direction == Direction::Horizontal)
+        ? QRect(0, bounding ? pos - 1 : pos, m_parentWindow->m_thisSurfaceSize.width(), bounding ? 2 : 1)
+        : QRect(bounding ? pos - 1 : pos, 0, bounding ? 2 : 1, m_parentWindow->m_thisSurfaceSize.height());
+}

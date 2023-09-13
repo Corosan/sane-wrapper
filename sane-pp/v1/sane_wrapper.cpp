@@ -418,12 +418,12 @@ void device::do_scanning(std::stop_token stop_token) {
 
         std::this_thread::sleep_for(500ms);
 
-        // Let's define trivial 32x32 monochrome image with black/white pixels
+        // Let's define trivial 32x34 monochrome image with black/white pixels
         m_scanning_params.format = SANE_FRAME_GRAY;
         m_scanning_params.last_frame = SANE_TRUE;
         m_scanning_params.bytes_per_line = 4;
         m_scanning_params.pixels_per_line = 32;
-        m_scanning_params.lines = 32;
+        m_scanning_params.lines = 34;
         m_scanning_params.depth = 1;
 
         m_lib_internal->log(LogLevel::Debug, "parameters got, going to extract test data in synchronous mode");
@@ -510,7 +510,7 @@ void device::do_scanning(std::stop_token stop_token) {
             std::copy(details::g_sample_image + m_sample_image_offset,
                 details::g_sample_image + m_sample_image_offset + was_read, chunk.data());
             m_sample_image_offset += was_read;
-            std::this_thread::sleep_for(500ms);
+            std::this_thread::sleep_for(300ms);
             chunk.resize(was_read);
             if (! chunk.empty()) {
                 {

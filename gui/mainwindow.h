@@ -30,9 +30,10 @@ private slots:
     void optionButtonPressed(const QModelIndex&);
     void optionModelError(QString);
     void scannedImageGot(bool, QString);
-    void drawingImageScaleChanged(float);
-    void drawingImageMoved(QPoint, QPoint);
-    void drawingImageGeometryChanged(QRect);
+    void onDrawingImageScaleChanged(float);
+    void onDrawingImageMoved(QPoint, QPoint);
+    void onDrawingImageGeometryChanged(QRect);
+    void onRedrawRullerZone(bool, int, int, int);
     void scanProgress(QVariant);
 
     void on_btnReloadDevs_clicked();

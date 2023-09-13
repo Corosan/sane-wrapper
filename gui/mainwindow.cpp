@@ -40,6 +40,11 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     m_ui->ruller_bottom->setOrientation(Ruller::Orientation::Bottom);
     m_ui->ruller_left->setOrientation(Ruller::Orientation::Left);
 
+    m_ui->ruller_top->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
+    m_ui->ruller_right->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
+    m_ui->ruller_bottom->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
+    m_ui->ruller_left->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
+
     m_ui->statusbar->addWidget(new QLabel(m_ui->statusbar), 1);
 
     auto statusBarSep = new QFrame(m_ui->statusbar);
@@ -59,12 +64,14 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     m_ui->scrollAreaWidgetContents->setAutoFillBackground(false);
     m_ui->scrollAreaWidgetContents->setAttribute(Qt::WA_NoSystemBackground);
     Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::scaleChanged,
-        this, &MainWindow::drawingImageScaleChanged));
-    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::mainImageGeometryChanged,
-        this, &MainWindow::drawingImageGeometryChanged));
-    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::mainImageMoved,
-        this, &MainWindow::drawingImageMoved));
-    drawingImageScaleChanged(m_ui->scrollAreaWidgetContents->getScale());
+        this, &MainWindow::onDrawingImageScaleChanged));
+    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::scannedDocImageDisplayGeometryChanged,
+        this, &MainWindow::onDrawingImageGeometryChanged));
+    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::scannedDocImageMovedOnDisplay,
+        this, &MainWindow::onDrawingImageMoved));
+    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::redrawRullerZone,
+        this, &MainWindow::onRedrawRullerZone));
+    onDrawingImageScaleChanged(m_ui->scrollAreaWidgetContents->getScale());
 
     auto deviceListModel = new DeviceListModel(m_saneLibWrapperPtr, this);
     m_ui->comboBox_devices->setModel(deviceListModel);
@@ -324,13 +331,18 @@ void MainWindow::on_actionRotateCounterClockwise_triggered() {
     m_ui->scrollAreaWidgetContents->rotate(false);
 }
 
-void MainWindow::drawingImageScaleChanged(float scale) {
+void MainWindow::onDrawingImageScaleChanged(float scale) {
     // The scaling is reported relative to real world in a sense that all the geometry of a scanned image
     // is calculated respective to the screen DPI
     m_scaleStatusLabel->setText(tr("x %1").arg(QLocale().toString(scale / m_scannerToScreenDPIScale)));
 }
 
-void MainWindow::drawingImageGeometryChanged(QRect geometry) {
+void MainWindow::onDrawingImageGeometryChanged(QRect geometry) {
+    geometry = {
+        m_ui->scrollAreaWidgetContents->mapTo(m_ui->centralwidget, geometry.topLeft())
+            - m_ui->scrollArea->pos(),
+        geometry.size()};
+
     m_ui->ruller_top->setParams(geometry.x(), geometry.width(),
         m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
     m_ui->ruller_bottom->setParams(geometry.x(), geometry.width(),
@@ -346,7 +358,7 @@ void MainWindow::drawingImageGeometryChanged(QRect geometry) {
     m_ui->actionZoomOut->setEnabled(geometry.isValid());
 }
 
-void MainWindow::drawingImageMoved(QPoint pos, QPoint oldPos) {
+void MainWindow::onDrawingImageMoved(QPoint pos, QPoint oldPos) {
     if (pos.x() != oldPos.x()) {
         m_ui->ruller_top->scrollBy(pos.x() - oldPos.x());
         m_ui->ruller_bottom->scrollBy(pos.x() - oldPos.x());
@@ -354,6 +366,16 @@ void MainWindow::drawingImageMoved(QPoint pos, QPoint oldPos) {
     if (pos.y() != oldPos.y()) {
         m_ui->ruller_left->scrollBy(pos.y() - oldPos.y());
         m_ui->ruller_right->scrollBy(pos.y() - oldPos.y());
+    }
+}
+
+void MainWindow::onRedrawRullerZone(bool isHorizontal, int startRedrawPos, int stopRedrawPos, int cursorPos) {
+    if (isHorizontal) {
+        m_ui->ruller_left->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
+        m_ui->ruller_right->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
+    } else {
+        m_ui->ruller_top->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
+        m_ui->ruller_bottom->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
     }
 }
 

@@ -11,7 +11,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets LinguistTools REQUIRED)
+find_package(QT NAMES Qt5 COMPONENTS Widgets LinguistTools REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets LinguistTools REQUIRED)
 
 file(GLOB PROJECT_SOURCES *.h *.cpp *.ui)
@@ -76,7 +76,7 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(gui)
 endif()
 
-# set(SANE_PP_STUB ON)
+set(SANE_PP_STUB ON)
 # set(SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT ON)
 add_subdirectory(../sane-pp sane-pp)
 
