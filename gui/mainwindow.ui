@@ -220,6 +220,7 @@
    <addaction name="actionMirrorHorz"/>
    <addaction name="actionRotateClockwise"/>
    <addaction name="actionRotateCounterClockwise"/>
+   <addaction name="actionDashCursor"/>
   </widget>
   <action name="actionStartScan">
    <property name="enabled">
@@ -301,6 +302,11 @@
     <iconset resource="../build/gui.debug/qm/app.qrc">
      <normaloff>:/icons/rotate-counter-clock.png</normaloff>:/icons/rotate-counter-clock.png</iconset>
    </property>
+  </action>
+  <action name="actionDashCursor">
+    <property name="enabled">
+      <bool>false</bool>
+    </property>
   </action>
  </widget>
  <customwidgets>

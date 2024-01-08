@@ -95,7 +95,8 @@ protected:
 class DrawingSurface : public QWidget, public IImageHolder {
     Q_OBJECT
 
-    Q_PROPERTY(float scale READ getScale WRITE setScale NOTIFY scaleChanged)
+    Q_PROPERTY(float scale READ scale WRITE setScale NOTIFY scaleChanged)
+    Q_PROPERTY(bool showDashCursor READ dashCursorShown WRITE showDashCursor NOTIFY dashCursorVisibilityChanged)
 
 public:
     explicit DrawingSurface(QWidget *parent = nullptr);
@@ -127,9 +128,9 @@ private:
             , m_direction(direction) {
         }
 
-        void enterWindow(QPoint);
+        void enterWindow(QPoint, int&);
         void leaveWindow();
-        void moveMouse(QMouseEvent*);
+        bool moveMouse(QMouseEvent*, int&);
         void draw(QPainter&, QPaintEvent*);
 
     private:
@@ -154,6 +155,8 @@ private:
     QSize m_thisSurfaceSize;
     float m_scale = 1.0f;
     int m_marginWidth = 0;
+    bool m_showDashCursor = false;
+    bool m_cursorInWorkingArea = false;
 
     QBrush m_segmentBrushes[8];
     QPen m_dashCursorPen;
@@ -172,13 +175,14 @@ private:
     void redrawRullerZoneInner(bool, int, int, int);
 
 public slots:
-    float getScale() const {
-        return m_scale;
-    }
+    float scale() const { return m_scale; }
     void setScale(float);
+    bool dashCursorShown() const { return m_showDashCursor; }
+    void showDashCursor(bool);
 
 signals:
     void scaleChanged(float);
+    void dashCursorVisibilityChanged(bool);
 
     /*!
      * \param pNew is a new point inside the drawing surface's scroll area where
@@ -198,10 +202,13 @@ signals:
     /*!
      * \brief request rullers to redraw their part in order to display a dashed line cursor
      *        on a new position. All coordinates - realative to scanned doc surface display position
+     *        (so 0,0 denotes upper-left corner of the scanned doc surface).
      *
      * \param isHorizontal denotes horizontal dashed line
      */
     void redrawRullerZone(bool isHorizontal, int startRedrawPos, int stopRedrawPos, int cursorPos);
+
+    void dashedCursorPoint(int xPxOnScan, int yPxOnScan);
 };
 
 

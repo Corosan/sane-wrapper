@@ -34,6 +34,7 @@ private slots:
     void onDrawingImageMoved(QPoint, QPoint);
     void onDrawingImageGeometryChanged(QRect);
     void onRedrawRullerZone(bool, int, int, int);
+    void onDashCursorPositionChanged(int, int);
     void scanProgress(QVariant);
 
     void on_btnReloadDevs_clicked();
@@ -47,12 +48,22 @@ private slots:
     void on_actionMirrorHorz_triggered();
     void on_actionRotateClockwise_triggered();
     void on_actionRotateCounterClockwise_triggered();
+    void on_actionDashCursor_triggered();
 
 private:
     QScopedPointer<Ui::MainWindow> m_ui;
+    /*!
+     * \brief current display scale of the drawing surface as it's written on a status bar
+     */
     QLabel* m_scaleStatusLabel;
-    QLabel* m_modeStatusLabel;
+    /*!
+     * \brief name of units assumed by rullers around the drawing surface as it's written on a status bar
+     */
     QLabel* m_rullerUnitsLabel;
+    /*!
+     * \brief position of dash cursor on the drawing surface as it's written on a status bar
+     */
+    QLabel* m_dashPointPositionLabel;
 
     vg_sane::lib::ptr_t m_saneLibWrapperPtr;
     vg_sane::device m_scannerDevice;

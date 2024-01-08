@@ -41,6 +41,7 @@ unsigned char* IImageHolder::ImageModifier::scanLine(int i, int leftAffectedPx, 
     return m_imageHolder->image().scanLine(i);
 }
 
+
 DrawingSurface::DrawingSurface(QWidget *parent)
     : QWidget(parent)
     , m_dashCursorPen(Qt::DashLine)
@@ -56,6 +57,24 @@ void DrawingSurface::setScale(float val) {
         m_scale = val;
         recalcImageGeometry();
         emit scaleChanged(m_scale);
+    }
+}
+
+void DrawingSurface::showDashCursor(bool val) {
+    if (m_showDashCursor != val) {
+        m_showDashCursor = val;
+        if (m_showDashCursor && m_cursorInWorkingArea) {
+            const QPoint cursorPt = mapFromGlobal(QCursor::pos());
+            int xOnScan, yOnScan;
+            m_horzDashCursor.enterWindow(cursorPt, yOnScan);
+            m_vertDashCursor.enterWindow(cursorPt, xOnScan);
+            emit dashedCursorPoint(xOnScan, yOnScan);
+        }
+        if (! m_showDashCursor && m_cursorInWorkingArea) {
+            m_horzDashCursor.leaveWindow();
+            m_vertDashCursor.leaveWindow();
+            emit dashedCursorPoint(-1, -1);
+        }
     }
 }
 
@@ -329,19 +348,31 @@ void DrawingSurface::resizeEvent(QResizeEvent* ev) {
 }
 
 void DrawingSurface::enterEvent(QEvent*) {
-    const QPoint cursorPt = mapFromGlobal(QCursor::pos());
-    m_horzDashCursor.enterWindow(cursorPt);
-    m_vertDashCursor.enterWindow(cursorPt);
+    m_cursorInWorkingArea = true;
+    if (m_showDashCursor) {
+        int xOnScan, yOnScan;
+        const QPoint cursorPt = mapFromGlobal(QCursor::pos());
+        m_horzDashCursor.enterWindow(cursorPt, yOnScan);
+        m_vertDashCursor.enterWindow(cursorPt, xOnScan);
+        emit dashedCursorPoint(xOnScan, yOnScan);
+    }
 }
 
 void DrawingSurface::leaveEvent(QEvent*) {
     m_horzDashCursor.leaveWindow();
     m_vertDashCursor.leaveWindow();
+    if (m_cursorInWorkingArea)
+        emit dashedCursorPoint(-1, -1);
+    m_cursorInWorkingArea = false;
 }
 
 void DrawingSurface::mouseMoveEvent(QMouseEvent* event) {
-    m_horzDashCursor.moveMouse(event);
-    m_vertDashCursor.moveMouse(event);
+    int xOnScan = 0, yOnScan = 0;
+    bool moved = m_horzDashCursor.moveMouse(event, yOnScan);
+    moved |= m_vertDashCursor.moveMouse(event, xOnScan);
+
+    if (moved)
+        emit dashedCursorPoint(xOnScan, yOnScan);
 }
 
 void DrawingSurface::redrawRullerZoneInner(bool isHorizontal, int startRedrawPos, int stopRedrawPos, int cursorPos) {
@@ -364,8 +395,10 @@ QPair<int, int> DrawingSurface::DashedCursorLine::getCursorPosition(QPointF pos)
     }
 }
 
-void DrawingSurface::DashedCursorLine::enterWindow(QPoint cursorPt) {
-    m_cursorPosition = getCursorPosition(cursorPt).first;
+void DrawingSurface::DashedCursorLine::enterWindow(QPoint cursorPt, int& pointOnScan) {
+    auto p = getCursorPosition(cursorPt);
+    m_cursorPosition = p.first;
+    pointOnScan = p.second;
     m_parentWindow->update(getCursorRect(m_cursorPosition, true));
     m_parentWindow->redrawRullerZoneInner(m_direction == Direction::Horizontal,
         m_cursorPosition - 1, m_cursorPosition, m_cursorPosition);
@@ -380,17 +413,15 @@ void DrawingSurface::DashedCursorLine::leaveWindow() {
     }
 }
 
-void DrawingSurface::DashedCursorLine::moveMouse(QMouseEvent* event) {
+bool DrawingSurface::DashedCursorLine::moveMouse(QMouseEvent* event, int& pointOnScan) {
     if (m_cursorPosition == -1)
-        return;
+        return false;
 
-    int newPos = getCursorPosition(event->localPos()).first;
-    //auto v = getCursorPosition(event->localPos());
-    //int newPos = v.first;
+    auto p = getCursorPosition(event->localPos());
+    int newPos = p.first;
+    pointOnScan = p.second;
     if (newPos == m_cursorPosition)
-        return;
-
-    //qDebug() << "move" << v;
+        return false;
 
     QRegion rgn;
     int edge1 = -1, edge2;
@@ -410,6 +441,7 @@ void DrawingSurface::DashedCursorLine::moveMouse(QMouseEvent* event) {
 
     m_parentWindow->update(rgn);
     m_parentWindow->redrawRullerZoneInner(m_direction == Direction::Horizontal, edge1 - 1, edge2, m_cursorPosition);
+    return true;
 }
 
 void DrawingSurface::DashedCursorLine::draw(QPainter& painter, QPaintEvent* ev) {

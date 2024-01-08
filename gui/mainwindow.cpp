@@ -51,6 +51,12 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     statusBarSep->setFrameShape(QFrame::VLine);
     m_ui->statusbar->addPermanentWidget(statusBarSep, 0);
 
+    m_ui->statusbar->addPermanentWidget((m_dashPointPositionLabel = new QLabel(m_ui->statusbar)), 0);
+
+    statusBarSep = new QFrame(m_ui->statusbar);
+    statusBarSep->setFrameShape(QFrame::VLine);
+    m_ui->statusbar->addPermanentWidget(statusBarSep, 0);
+
     m_ui->statusbar->addPermanentWidget((m_scaleStatusLabel = new QLabel(m_ui->statusbar)), 0);
 
     statusBarSep = new QFrame(m_ui->statusbar);
@@ -71,7 +77,9 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
         this, &MainWindow::onDrawingImageMoved));
     Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::redrawRullerZone,
         this, &MainWindow::onRedrawRullerZone));
-    onDrawingImageScaleChanged(m_ui->scrollAreaWidgetContents->getScale());
+    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::dashedCursorPoint,
+        this, &MainWindow::onDashCursorPositionChanged));
+    onDrawingImageScaleChanged(m_ui->scrollAreaWidgetContents->scale());
 
     auto deviceListModel = new DeviceListModel(m_saneLibWrapperPtr, this);
     m_ui->comboBox_devices->setModel(deviceListModel);
@@ -228,6 +236,7 @@ void MainWindow::on_actionStartScan_triggered() {
     m_ui->actionMirrorHorz->setEnabled(false);
     m_ui->actionRotateClockwise->setEnabled(false);
     m_ui->actionRotateCounterClockwise->setEnabled(false);
+    m_ui->actionDashCursor->setEnabled(false);
 
     m_ui->statusbar->showMessage(tr("Scanning..."));
 
@@ -268,6 +277,7 @@ void MainWindow::scannedImageGot(bool status, QString errMsg) {
         m_ui->actionMirrorHorz->setEnabled(true);
         m_ui->actionRotateClockwise->setEnabled(true);
         m_ui->actionRotateCounterClockwise->setEnabled(true);
+        m_ui->actionDashCursor->setEnabled(true);
     } else {
         QMessageBox::critical(this, this->windowTitle() + tr(" - error"), errMsg);
     }
@@ -307,12 +317,12 @@ void MainWindow::closeEvent(QCloseEvent* ev) {
 }
 
 void MainWindow::on_actionZoomIn_triggered() {
-    m_ui->scrollAreaWidgetContents->setScale(m_ui->scrollAreaWidgetContents->getScale() * 2);
+    m_ui->scrollAreaWidgetContents->setScale(m_ui->scrollAreaWidgetContents->scale() * 2);
 }
 
 
 void MainWindow::on_actionZoomOut_triggered() {
-    m_ui->scrollAreaWidgetContents->setScale(m_ui->scrollAreaWidgetContents->getScale() / 2);
+    m_ui->scrollAreaWidgetContents->setScale(m_ui->scrollAreaWidgetContents->scale() / 2);
 }
 
 void MainWindow::on_actionMirrorVert_triggered() {
@@ -331,6 +341,11 @@ void MainWindow::on_actionRotateCounterClockwise_triggered() {
     m_ui->scrollAreaWidgetContents->rotate(false);
 }
 
+void MainWindow::on_actionDashCursor_triggered() {
+    m_ui->scrollAreaWidgetContents->showDashCursor(
+        ! m_ui->scrollAreaWidgetContents->dashCursorShown());
+}
+
 void MainWindow::onDrawingImageScaleChanged(float scale) {
     // The scaling is reported relative to real world in a sense that all the geometry of a scanned image
     // is calculated respective to the screen DPI
@@ -344,14 +359,15 @@ void MainWindow::onDrawingImageGeometryChanged(QRect geometry) {
         geometry.size()};
 
     m_ui->ruller_top->setParams(geometry.x(), geometry.width(),
-        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
+        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->scale());
     m_ui->ruller_bottom->setParams(geometry.x(), geometry.width(),
-        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
+        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->scale());
     m_ui->ruller_left->setParams(geometry.y(), geometry.height(),
-        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
+        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->scale());
     m_ui->ruller_right->setParams(geometry.y(), geometry.height(),
-        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->getScale());
+        m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->scale());
 
+    // It's expected that all the rullers have the same mode / unit
     m_rullerUnitsLabel->setText(m_ui->ruller_top->isCm() ? tr("cm") : tr("mm"));
 
     m_ui->actionZoomIn->setEnabled(geometry.isValid());
@@ -377,6 +393,17 @@ void MainWindow::onRedrawRullerZone(bool isHorizontal, int startRedrawPos, int s
         m_ui->ruller_top->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
         m_ui->ruller_bottom->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
     }
+}
+
+void MainWindow::onDashCursorPositionChanged(int xPxOnScan, int yPxOnScan) {
+    const auto k = 25.4 / m_lastScannedPicDPI;
+    static const auto fmt = tr("%1x%2 (%3x%4 mm)");
+
+    if (xPxOnScan >= 0 && yPxOnScan >= 0)
+        m_dashPointPositionLabel->setText(
+            fmt.arg(xPxOnScan).arg(yPxOnScan).arg(xPxOnScan * k, 0, 'f', 1).arg(yPxOnScan * k, 0, 'f', 1));
+    else
+        m_dashPointPositionLabel->setText({});
 }
 
 //--------------------------------------------------------------------------------------------------

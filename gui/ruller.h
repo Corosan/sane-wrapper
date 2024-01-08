@@ -19,7 +19,7 @@ public slots:
     void setDashedCursorPen(const QPen& pen) {
         m_dashCursorPen = pen;
     }
-    void setOrientation(Orientation val) {
+    void setOrientation(Ruller::Orientation val) {
         m_orientation = val;
     }
 
