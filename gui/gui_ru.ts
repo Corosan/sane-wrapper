@@ -270,7 +270,7 @@
     <message>
         <location filename="mainwindow.cpp" line="400"/>
         <source>%1x%2 (%3x%4 mm)</source>
-        <translation type="unfinished"></translation>
+        <translation>%1x%2 (%3x%4 мм)</translation>
     </message>
     <message>
         <source>scale: %1</source>
