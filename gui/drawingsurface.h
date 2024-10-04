@@ -99,12 +99,10 @@ class DrawingSurface
     Q_OBJECT
 
     Q_PROPERTY(float scale READ scale WRITE setScale NOTIFY scaleChanged)
-    Q_PROPERTY(bool showDashCursor READ dashCursorShown WRITE showDashCursor NOTIFY dashCursorVisibilityChanged)
 
 public:
     explicit DrawingSurface(QWidget *parent = nullptr);
 
-    const QPen& getDashCursorPen() const { return m_dashCursorPen; }
     QSize sizeHint() const override { return m_thisSurfaceSize; }
     const QImage& getImage() const { return m_scannedDocImage; }
     QRect scannedDocImageDisplayGeometry() const {
@@ -137,29 +135,6 @@ protected:
     void mouseMoveEvent(QMouseEvent*) override;
 
 private:
-    class DashedCursorLine {
-    public:
-        enum class Direction { Horizontal, Vertical };
-
-        explicit DashedCursorLine(DrawingSurface* parentWindow, Direction direction)
-            : m_parentWindow(parentWindow)
-            , m_direction(direction) {
-        }
-
-        void enterWindow(QPoint, int&);
-        void leaveWindow();
-        bool moveMouse(QMouseEvent*, int&);
-        void draw(QPainter&, QPaintEvent*);
-
-    private:
-        DrawingSurface* const m_parentWindow;
-        const Direction m_direction;
-        int m_cursorPosition = -1;
-
-        QRect getCursorRect(int pos, bool bounding = false) const;
-        QPair<int, int> getCursorPosition(QPointF) const;
-    };
-
     /*!
      * \brief the main storage for an image being scanned
      */
@@ -173,12 +148,8 @@ private:
     QSize m_thisSurfaceSize;
     float m_scale = 1.0f;
     int m_marginWidth = 0;
-    bool m_showDashCursor = false;
-    bool m_cursorInWorkingArea = false;
 
     QBrush m_segmentBrushes[8];
-    QPen m_dashCursorPen;
-    DashedCursorLine m_horzDashCursor, m_vertDashCursor;
 
     QPoint m_currentlyScrolledBy;
     drawing::ISurfaceMouseOps* m_surfaceMouseOpsConsumer = nullptr;
@@ -201,17 +172,13 @@ private:
 
     void redrawScannedDocImage(const QRect&);
     void recalcScannedDocImageGeometry();
-    void redrawRullerZoneInner(bool, int, int, int);
 
 public slots:
     float scale() const { return m_scale; }
     void setScale(float);
-    bool dashCursorShown() const { return m_showDashCursor; }
-    void showDashCursor(bool);
 
 signals:
     void scaleChanged(float);
-    void dashCursorVisibilityChanged(bool);
 
     /*!
      * \param pNew is a new point inside the drawing surface's scroll area where
@@ -227,24 +194,4 @@ signals:
      *          if the image is scrolled somewhere up and left.
      */
     void scannedDocImageDisplayGeometryChanged(QRect r);
-
-    /*!
-     * \brief request rullers to redraw their part in order to display a dashed line cursor
-     *        on a new position. All coordinates - realative to scanned doc surface display position
-     *        (so 0,0 denotes upper-left corner of the scanned doc surface).
-     *
-     * \param isHorizontal denotes horizontal dashed line
-     */
-    void redrawRullerZone(bool isHorizontal, int startRedrawPos, int stopRedrawPos, int cursorPos);
-
-    void dashedCursorPoint(int xPxOnScan, int yPxOnScan);
 };
-
-
-inline QRect DrawingSurface::DashedCursorLine::getCursorRect(int pos, bool bounding) const {
-    // Anti-aliased renderer tries to draw line between -0.5 ... 0.5 of current position, so getting
-    // rect for paint invalidation should include -0.5 ... 0 part.
-    return (m_direction == Direction::Horizontal)
-        ? QRect(0, bounding ? pos - 1 : pos, m_parentWindow->m_thisSurfaceSize.width(), bounding ? 2 : 1)
-        : QRect(bounding ? pos - 1 : pos, 0, bounding ? 2 : 1, m_parentWindow->m_thisSurfaceSize.height());
-}

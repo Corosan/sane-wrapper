@@ -44,13 +44,9 @@ unsigned char* IImageHolder::ImageModifier::scanLine(int i, int leftAffectedPx, 
 
 DrawingSurface::DrawingSurface(QWidget *parent)
     : QWidget(parent)
-    , PlaneBase(this)
-    , m_dashCursorPen(Qt::DashLine)
-    , m_horzDashCursor(this, DashedCursorLine::Direction::Horizontal)
-    , m_vertDashCursor(this, DashedCursorLine::Direction::Vertical) {
+    , PlaneBase(this) {
     //setAttribute(Qt::WA_NoSystemBackground);
     setMouseTracking(true);
-    m_dashCursorPen.setColor(QColor(32, 32, 255));
 }
 
 void DrawingSurface::setScale(float val) {
@@ -58,24 +54,6 @@ void DrawingSurface::setScale(float val) {
         m_scale = val;
         recalcImageGeometry();
         emit scaleChanged(m_scale);
-    }
-}
-
-void DrawingSurface::showDashCursor(bool val) {
-    if (m_showDashCursor != val) {
-        m_showDashCursor = val;
-        if (m_showDashCursor && m_cursorInWorkingArea) {
-            const QPoint cursorPt = mapFromGlobal(QCursor::pos());
-            int xOnScan, yOnScan;
-            m_horzDashCursor.enterWindow(cursorPt, yOnScan);
-            m_vertDashCursor.enterWindow(cursorPt, xOnScan);
-            emit dashedCursorPoint(xOnScan, yOnScan);
-        }
-        if (! m_showDashCursor && m_cursorInWorkingArea) {
-            m_horzDashCursor.leaveWindow();
-            m_vertDashCursor.leaveWindow();
-            emit dashedCursorPoint(-1, -1);
-        }
     }
 }
 
@@ -315,9 +293,6 @@ void DrawingSurface::paintEvent(QPaintEvent* ev) {
     if (! imageDisplayRect.isEmpty())
         painter.drawPixmap(imageDisplayRect, m_displayedPixmap, imageDisplayRect.translated(-tl));
 
-    m_horzDashCursor.draw(painter, ev);
-    m_vertDashCursor.draw(painter, ev);
-
     drawing::PlaneBase::draw(painter, ev);
 }
 
@@ -340,123 +315,18 @@ void DrawingSurface::enterEvent(QEnterEvent*) {
 #else
 void DrawingSurface::enterEvent(QEvent*) {
 #endif
-    m_cursorInWorkingArea = true;
-    if (m_showDashCursor) {
-        int xOnScan, yOnScan;
-        const QPoint cursorPt = mapFromGlobal(QCursor::pos());
-        m_horzDashCursor.enterWindow(cursorPt, yOnScan);
-        m_vertDashCursor.enterWindow(cursorPt, xOnScan);
-        emit dashedCursorPoint(xOnScan, yOnScan);
-    }
-
     if (m_surfaceMouseOpsConsumer)
         m_surfaceMouseOpsConsumer->onSurfaceMouseEnterEvent(
             parentWidget()->mapFromGlobal(QCursor::pos()));
 }
 
 void DrawingSurface::mouseMoveEvent(QMouseEvent* event) {
-    int xOnScan = 0, yOnScan = 0;
-    bool moved = m_horzDashCursor.moveMouse(event, yOnScan);
-    moved |= m_vertDashCursor.moveMouse(event, xOnScan);
-
-    if (moved)
-        emit dashedCursorPoint(xOnScan, yOnScan);
-
     if (m_surfaceMouseOpsConsumer)
         m_surfaceMouseOpsConsumer->onSurfaceMouseMoveEvent(
             parentWidget()->mapFromGlobal(QCursor::pos()));
 }
 
 void DrawingSurface::leaveEvent(QEvent*) {
-    m_horzDashCursor.leaveWindow();
-    m_vertDashCursor.leaveWindow();
-    if (m_cursorInWorkingArea)
-        emit dashedCursorPoint(-1, -1);
-    m_cursorInWorkingArea = false;
-
     if (m_surfaceMouseOpsConsumer)
         m_surfaceMouseOpsConsumer->onSurfaceMouseLeaveEvent();
-}
-
-void DrawingSurface::redrawRullerZoneInner(bool isHorizontal, int startRedrawPos, int stopRedrawPos, int cursorPos) {
-    emit redrawRullerZone(isHorizontal, startRedrawPos - m_marginWidth, stopRedrawPos - m_marginWidth, cursorPos - m_marginWidth);
-}
-
-QPair<int, int> DrawingSurface::DashedCursorLine::getCursorPosition(QPointF pos) const {
-    auto singlePos = (m_direction == Direction::Horizontal)
-        ? pos.y() : pos.x();
-    auto imageSize = (m_direction == Direction::Horizontal)
-        ? m_parentWindow->m_scannedDocImageDisplaySize.height() : m_parentWindow->m_scannedDocImageDisplaySize.width();
-
-    if (singlePos < m_parentWindow->m_marginWidth)
-        return {m_parentWindow->m_marginWidth, 0};
-    else if (singlePos >= m_parentWindow->m_marginWidth + imageSize)
-        return {m_parentWindow->m_marginWidth + imageSize, (int)std::round(imageSize / m_parentWindow->m_scale)};
-    else {
-        int v = std::round((singlePos - m_parentWindow->m_marginWidth) / m_parentWindow->m_scale);
-        return {m_parentWindow->m_marginWidth + (int)std::round(v * m_parentWindow->m_scale), v};
-    }
-}
-
-void DrawingSurface::DashedCursorLine::enterWindow(QPoint cursorPt, int& pointOnScan) {
-    auto p = getCursorPosition(cursorPt);
-    m_cursorPosition = p.first;
-    pointOnScan = p.second;
-    m_parentWindow->update(getCursorRect(m_cursorPosition, true));
-    m_parentWindow->redrawRullerZoneInner(m_direction == Direction::Horizontal,
-        m_cursorPosition - 1, m_cursorPosition, m_cursorPosition);
-}
-
-void DrawingSurface::DashedCursorLine::leaveWindow() {
-    if (m_cursorPosition >= 0) {
-        int old = m_cursorPosition;
-        m_cursorPosition = -1;
-        m_parentWindow->update(getCursorRect(old, true));
-        m_parentWindow->redrawRullerZoneInner(m_direction == Direction::Horizontal, old - 1, old, m_cursorPosition);
-    }
-}
-
-bool DrawingSurface::DashedCursorLine::moveMouse(QMouseEvent* event, int& pointOnScan) {
-    if (m_cursorPosition == -1)
-        return false;
-
-#if QT_VERSION >= 0x060000
-    auto p = getCursorPosition(event->position());
-#else
-    auto p = getCursorPosition(event->pos());
-#endif
-    int newPos = p.first;
-    pointOnScan = p.second;
-    if (newPos == m_cursorPosition)
-        return false;
-
-    QRegion rgn;
-    int edge1 = -1, edge2;
-
-    if (m_cursorPosition >= 0) {
-        edge1 = m_cursorPosition;
-        rgn += getCursorRect(m_cursorPosition, true);
-    }
-
-    m_cursorPosition = edge2 = newPos;
-    rgn += getCursorRect(m_cursorPosition, true);
-
-    if (edge1 == -1)
-        edge1 = edge2;
-    if (edge1 > edge2)
-        std::swap(edge1, edge2);
-
-    m_parentWindow->update(rgn);
-    m_parentWindow->redrawRullerZoneInner(m_direction == Direction::Horizontal, edge1 - 1, edge2, m_cursorPosition);
-    return true;
-}
-
-void DrawingSurface::DashedCursorLine::draw(QPainter& painter, QPaintEvent* ev) {
-    if (m_cursorPosition >= 0) {
-        auto r = getCursorRect(m_cursorPosition);
-        if (! r.intersected(ev->rect()).isEmpty()) {
-            painter.setPen(m_parentWindow->m_dashCursorPen);
-            painter.drawLine(r.topLeft(), r.bottomRight());
-        }
-    }
 }

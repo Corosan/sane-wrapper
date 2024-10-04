@@ -39,7 +39,6 @@ private slots:
     void onDrawingImageScaleChanged(float);
     void onDrawingImageMoved(QPoint, QPoint);
     void onDrawingImageGeometryChanged(QRect);
-    void onRedrawRullerZone(bool, int, int, int);
     void onDashCursorPositionChanged(int, int);
     void scanProgress(QVariant);
 

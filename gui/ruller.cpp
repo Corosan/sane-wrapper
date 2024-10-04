@@ -53,15 +53,6 @@ void Ruller::scrollBy(int delta) {
         scroll(0, delta, QRect(1, 1, width() - 2, height() - 2));
 }
 
-void Ruller::updateDashedCursor(int startDispSurfaceRedrawPos, int stopDispSurfaceRedrawPos, int cursorPos) {
-    m_dashCursorPos = cursorPos;
-
-    if (m_orientation == Position::Top || m_orientation == Position::Bottom)
-        update(startDispSurfaceRedrawPos + m_picOffsetPx, 1, stopDispSurfaceRedrawPos - startDispSurfaceRedrawPos + 1, height() - 2);
-    else
-        update(1, startDispSurfaceRedrawPos + m_picOffsetPx, width() - 2, stopDispSurfaceRedrawPos - startDispSurfaceRedrawPos + 1);
-}
-
 void Ruller::paintEvent(QPaintEvent* ev) {
     QPainter painter(this);
 
@@ -164,19 +155,6 @@ void Ruller::paintEvent(QPaintEvent* ev) {
 
                 painter.drawLine(l);
             }
-        }
-    }
-
-    if (m_dashCursorPos >= 0) {
-        QRect r;
-        if (m_orientation == Position::Top || m_orientation == Position::Bottom)
-            r = {m_dashCursorPos + m_picOffsetPx, 1, 1, height() - 2};
-        else
-            r = {1, m_dashCursorPos + m_picOffsetPx, width() - 2, 1};
-
-        if (! r.intersected(ev->rect()).isEmpty()) {
-            painter.setPen(m_dashCursorPen);
-            painter.drawLine(r.topLeft(), r.bottomRight());
         }
     }
 

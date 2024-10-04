@@ -25,9 +25,6 @@ public:
     explicit Ruller(QWidget *parent = nullptr);
 
 public slots:
-    void setDashedCursorPen(const QPen& pen) {
-        m_dashCursorPen = pen;
-    }
     void setOrientation(Ruller::Position val) {
         m_orientation = val;
     }
@@ -47,8 +44,6 @@ public slots:
     void setParams(int picOffsetPx, int picSizePx, float scannerDPI, float scale);
     void scrollBy(int delta);
 
-    void updateDashedCursor(int startDispSurfaceRedrawPos, int stopDispSurfaceRedrawPos, int cursorPos);
-
     bool isCm() const { return m_mmExp >= 1; }
 
 protected:
@@ -57,8 +52,6 @@ protected:
 private:
     Position m_orientation = Position::Left;
     QPoint m_offsetToSurface;
-    QPen m_dashCursorPen;
-    int m_dashCursorPos = -1;
     int m_picOffsetPx;
     int m_picSizePx = 0;
     float m_scannerDPI;

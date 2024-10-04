@@ -56,11 +56,6 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     m_ui->ruller_bottom->setOrientation(Ruller::Position::Bottom);
     m_ui->ruller_left->setOrientation(Ruller::Position::Left);
 
-    m_ui->ruller_top->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
-    m_ui->ruller_right->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
-    m_ui->ruller_bottom->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
-    m_ui->ruller_left->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
-
     m_ui->statusbar->addWidget(new QLabel(m_ui->statusbar), 1);
 
     auto statusBarSep = new QFrame(m_ui->statusbar);
@@ -91,10 +86,6 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
         this, &MainWindow::onDrawingImageGeometryChanged));
     Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::scannedDocImageMovedOnDisplay,
         this, &MainWindow::onDrawingImageMoved));
-    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::redrawRullerZone,
-        this, &MainWindow::onRedrawRullerZone));
-    Q_ASSERT(connect(m_ui->scrollAreaWidgetContents, &DrawingSurface::dashedCursorPoint,
-        this, &MainWindow::onDashCursorPositionChanged));
     onDrawingImageScaleChanged(m_ui->scrollAreaWidgetContents->scale());
 
     auto deviceListModel = new DeviceListModel(m_saneLibWrapperPtr, this);
@@ -446,16 +437,6 @@ void MainWindow::onDrawingImageMoved(QPoint pos, QPoint oldPos) {
     if (pos.y() != oldPos.y()) {
         m_ui->ruller_left->scrollBy(pos.y() - oldPos.y());
         m_ui->ruller_right->scrollBy(pos.y() - oldPos.y());
-    }
-}
-
-void MainWindow::onRedrawRullerZone(bool isHorizontal, int startRedrawPos, int stopRedrawPos, int cursorPos) {
-    if (isHorizontal) {
-        m_ui->ruller_left->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
-        m_ui->ruller_right->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
-    } else {
-        m_ui->ruller_top->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
-        m_ui->ruller_bottom->updateDashedCursor(startRedrawPos, stopRedrawPos, cursorPos);
     }
 }
 
