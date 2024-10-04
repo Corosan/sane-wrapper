@@ -245,16 +245,16 @@ public:
     }
 };
 
-QScopedPointer<IImageBuilder> createBuilder(
+std::unique_ptr<IImageBuilder> createBuilder(
     const ::SANE_Parameters& params, IImageHolder& imageHolder, int heightHint) {
     if (params.depth != 1 && params.depth != 8 && params.depth != 16)
         throw std::runtime_error("unsupported image depth " + std::to_string(params.depth)
             + " bits per pixel");
 
     if (params.format == SANE_FRAME_GRAY)
-        return QScopedPointer<IImageBuilder>(new GrayImageBuilder(params, imageHolder, heightHint));
+        return std::make_unique<GrayImageBuilder>(params, imageHolder, heightHint);
     else if (params.format == SANE_FRAME_RGB)
-        return QScopedPointer<IImageBuilder>(new InterleavedColorImageBuilder(params, imageHolder, heightHint));
+        return std::make_unique<InterleavedColorImageBuilder>(params, imageHolder, heightHint);
 
     throw std::runtime_error("unable to decode image with unknown format id="
         + std::to_string(params.format));

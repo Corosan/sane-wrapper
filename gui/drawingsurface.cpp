@@ -44,6 +44,7 @@ unsigned char* IImageHolder::ImageModifier::scanLine(int i, int leftAffectedPx, 
 
 DrawingSurface::DrawingSurface(QWidget *parent)
     : QWidget(parent)
+    , PlaneBase(this)
     , m_dashCursorPen(Qt::DashLine)
     , m_horzDashCursor(this, DashedCursorLine::Direction::Horizontal)
     , m_vertDashCursor(this, DashedCursorLine::Direction::Vertical) {
@@ -311,30 +312,18 @@ void DrawingSurface::paintEvent(QPaintEvent* ev) {
     // What should be updated on a screen somewhere on a place where the image is located
     auto imageDisplayRect = QRect(tl, m_scannedDocImageDisplaySize).intersected(ev->rect());
 
-//    // Which part of original image should be taken for drawing it on a screen. Top-level point is shifted
-//    // to most top and most left place while been converted to integer.
-//    QRect imageRect(
-//            dividePoints(imageDisplayRect.topLeft() - tl, m_scale, /*roundUp*/ false),
-//            dividePoints(imageDisplayRect.bottomRight() - tl + QPoint(1, 1), m_scale, /*roundUp*/ true) - QPoint(1, 1));
-
-//    // Let's guarantee that the part of an image doesn't exceed the image itself
-//    imageRect = m_scannedDocImage.rect().intersected(imageRect);
-
-//    // Transform original image coordinates back to a screen coordinates
-//    imageDisplayRect = QRect(imageRect.topLeft() * m_scale + tl, imageRect.size() * m_scale);
-
-//    if (! imageDisplayRect.isEmpty()) {
-//        painter.drawImage(imageDisplayRect, m_scannedDocImage, imageRect);
-//    }
-
     if (! imageDisplayRect.isEmpty())
         painter.drawPixmap(imageDisplayRect, m_displayedPixmap, imageDisplayRect.translated(-tl));
 
     m_horzDashCursor.draw(painter, ev);
     m_vertDashCursor.draw(painter, ev);
+
+    drawing::PlaneBase::draw(painter, ev);
 }
 
 void DrawingSurface::moveEvent(QMoveEvent* ev) {
+    m_currentlyScrolledBy += ev->pos() - ev->oldPos();
+
     emit scannedDocImageMovedOnDisplay(ev->pos() + QPoint(m_marginWidth, m_marginWidth),
         ev->oldPos() + QPoint(m_marginWidth, m_marginWidth));
 }
@@ -343,11 +332,14 @@ void DrawingSurface::resizeEvent(QResizeEvent* ev) {
     emit scannedDocImageDisplayGeometryChanged(
         QRect(
             QPoint(m_marginWidth, m_marginWidth),
-            //ev->size() - QSize(m_marginWidth * 2, m_marginWidth * 2))
             m_scannedDocImageDisplaySize));
 }
 
+#if QT_VERSION >= 0x060000
+void DrawingSurface::enterEvent(QEnterEvent*) {
+#else
 void DrawingSurface::enterEvent(QEvent*) {
+#endif
     m_cursorInWorkingArea = true;
     if (m_showDashCursor) {
         int xOnScan, yOnScan;
@@ -356,14 +348,10 @@ void DrawingSurface::enterEvent(QEvent*) {
         m_vertDashCursor.enterWindow(cursorPt, xOnScan);
         emit dashedCursorPoint(xOnScan, yOnScan);
     }
-}
 
-void DrawingSurface::leaveEvent(QEvent*) {
-    m_horzDashCursor.leaveWindow();
-    m_vertDashCursor.leaveWindow();
-    if (m_cursorInWorkingArea)
-        emit dashedCursorPoint(-1, -1);
-    m_cursorInWorkingArea = false;
+    if (m_surfaceMouseOpsConsumer)
+        m_surfaceMouseOpsConsumer->onSurfaceMouseEnterEvent(
+            parentWidget()->mapFromGlobal(QCursor::pos()));
 }
 
 void DrawingSurface::mouseMoveEvent(QMouseEvent* event) {
@@ -373,6 +361,21 @@ void DrawingSurface::mouseMoveEvent(QMouseEvent* event) {
 
     if (moved)
         emit dashedCursorPoint(xOnScan, yOnScan);
+
+    if (m_surfaceMouseOpsConsumer)
+        m_surfaceMouseOpsConsumer->onSurfaceMouseMoveEvent(
+            parentWidget()->mapFromGlobal(QCursor::pos()));
+}
+
+void DrawingSurface::leaveEvent(QEvent*) {
+    m_horzDashCursor.leaveWindow();
+    m_vertDashCursor.leaveWindow();
+    if (m_cursorInWorkingArea)
+        emit dashedCursorPoint(-1, -1);
+    m_cursorInWorkingArea = false;
+
+    if (m_surfaceMouseOpsConsumer)
+        m_surfaceMouseOpsConsumer->onSurfaceMouseLeaveEvent();
 }
 
 void DrawingSurface::redrawRullerZoneInner(bool isHorizontal, int startRedrawPos, int stopRedrawPos, int cursorPos) {
@@ -417,7 +420,11 @@ bool DrawingSurface::DashedCursorLine::moveMouse(QMouseEvent* event, int& pointO
     if (m_cursorPosition == -1)
         return false;
 
-    auto p = getCursorPosition(event->localPos());
+#if QT_VERSION >= 0x060000
+    auto p = getCursorPosition(event->position());
+#else
+    auto p = getCursorPosition(event->pos());
+#endif
     int newPos = p.first;
     pointOnScan = p.second;
     if (newPos == m_cursorPosition)

@@ -6,7 +6,6 @@
 
 #include <QMetaType>
 #include <QApplication>
-#include <QScopedPointer>
 #include <QMessageBox>
 #include <QComboBox>
 #include <QSpinBox>
@@ -27,6 +26,23 @@
 
 #include <cmath>
 #include <memory>
+#include <cassert>
+
+drawing::IPlane& MainWindow::getRullerTopPlane() {
+    return *m_ui->ruller_top;
+}
+drawing::IPlane& MainWindow::getRullerBottomPlane() {
+    return *m_ui->ruller_bottom;
+}
+drawing::IPlane& MainWindow::getRullerLeftPlane() {
+    return *m_ui->ruller_left;
+}
+drawing::IPlane& MainWindow::getRullerRightPlane() {
+    return *m_ui->ruller_right;
+}
+drawing::IPlane& MainWindow::getSurfacePlane() {
+    return *m_ui->scrollAreaWidgetContents;
+}
 
 MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     : QMainWindow(parent)
@@ -35,10 +51,10 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
 
     m_ui->setupUi(this);
 
-    m_ui->ruller_top->setOrientation(Ruller::Orientation::Top);
-    m_ui->ruller_right->setOrientation(Ruller::Orientation::Right);
-    m_ui->ruller_bottom->setOrientation(Ruller::Orientation::Bottom);
-    m_ui->ruller_left->setOrientation(Ruller::Orientation::Left);
+    m_ui->ruller_top->setOrientation(Ruller::Position::Top);
+    m_ui->ruller_right->setOrientation(Ruller::Position::Right);
+    m_ui->ruller_bottom->setOrientation(Ruller::Position::Bottom);
+    m_ui->ruller_left->setOrientation(Ruller::Position::Left);
 
     m_ui->ruller_top->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
     m_ui->ruller_right->setDashedCursorPen(m_ui->scrollAreaWidgetContents->getDashCursorPen());
@@ -168,7 +184,7 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
                     .arg(m_ui->comboBox_devices->itemText(index)));
         }
 
-        QScopedPointer<DeviceOptionModel> modelPtr;
+        std::unique_ptr<DeviceOptionModel> modelPtr;
         try {
             modelPtr.reset(new DeviceOptionModel(m_scannerDevice, this));
             Q_ASSERT(connect(modelPtr.get(), &DeviceOptionModel::error, this, &MainWindow::optionModelError));
@@ -184,7 +200,7 @@ void MainWindow::on_comboBox_devices_currentIndexChanged(int index) {
                     .arg(m_ui->comboBox_devices->itemText(index)));
         }
 
-        m_ui->tableView_device_opts->setModel(modelPtr.take());
+        m_ui->tableView_device_opts->setModel(modelPtr.release());
 
         if (fullyInitializedDevice)
             m_ui->tableView_device_opts->resizeColumnsToContents();
@@ -303,6 +319,20 @@ void MainWindow::on_actionSave_triggered() {
         m_ui->statusbar->showMessage(tr("The image stored into %1").arg(pathToSave), 2000);
 }
 
+void MainWindow::showEvent(QShowEvent*) {
+    // Adjust rullers' offsets once the main window is shown for the first time
+    int xOffset = m_ui->scrollAreaWidgetContents->mapFromGlobal(
+        m_ui->ruller_top->parentWidget()->mapToGlobal(
+            m_ui->ruller_top->geometry().topLeft())).x();
+    int yOffset =m_ui->scrollAreaWidgetContents->mapFromGlobal(
+        m_ui->ruller_top->parentWidget()->mapToGlobal(
+            m_ui->ruller_left->geometry().topLeft())).y();
+    m_ui->ruller_top->setOffsetToSurface(QPoint{xOffset, 0});
+    m_ui->ruller_bottom->setOffsetToSurface(QPoint{xOffset, 0});
+    m_ui->ruller_left->setOffsetToSurface(QPoint{0, yOffset});
+    m_ui->ruller_right->setOffsetToSurface(QPoint{0, yOffset});
+}
+
 void MainWindow::closeEvent(QCloseEvent* ev) {
     if (m_imageCapturer) {
         QMessageBox::information(this, this->windowTitle(),
@@ -319,7 +349,6 @@ void MainWindow::closeEvent(QCloseEvent* ev) {
 void MainWindow::on_actionZoomIn_triggered() {
     m_ui->scrollAreaWidgetContents->setScale(m_ui->scrollAreaWidgetContents->scale() * 2);
 }
-
 
 void MainWindow::on_actionZoomOut_triggered() {
     m_ui->scrollAreaWidgetContents->setScale(m_ui->scrollAreaWidgetContents->scale() / 2);
@@ -342,21 +371,50 @@ void MainWindow::on_actionRotateCounterClockwise_triggered() {
 }
 
 void MainWindow::on_actionDashCursor_triggered() {
-    m_ui->scrollAreaWidgetContents->showDashCursor(
-        ! m_ui->scrollAreaWidgetContents->dashCursorShown());
+    if (! m_dashedCursorController) {
+        m_dashedCursorController = std::make_unique<drawing::DashedCursorController>(
+            static_cast<drawing::IPlaneProvider&>(*this));
+
+        m_dashedCursorController->setSurfaceScale(m_ui->scrollAreaWidgetContents->scale());
+        m_dashedCursorController->setSurfaceImageRect(
+            m_ui->scrollAreaWidgetContents->scannedDocImageDisplayGeometry().translated(m_scannedImageOffset));
+        m_dashedCursorController->setScannedCoordsChangedCb([this](QPoint p){
+                onDashCursorPositionChanged(p.x(), p.y());
+            });
+        m_ui->scrollAreaWidgetContents->setMouseOpsConsumer(*m_dashedCursorController);
+    } else {
+        m_ui->scrollAreaWidgetContents->clearMouseOpsConsumer();
+        m_dashedCursorController.reset();
+    }
+
+//    m_ui->scrollAreaWidgetContents->showDashCursor(
+//        ! m_ui->scrollAreaWidgetContents->dashCursorShown());
 }
 
 void MainWindow::onDrawingImageScaleChanged(float scale) {
+    if (m_dashedCursorController)
+        m_dashedCursorController->setSurfaceScale(scale);
+
     // The scaling is reported relative to real world in a sense that all the geometry of a scanned image
     // is calculated respective to the screen DPI
     m_scaleStatusLabel->setText(tr("x %1").arg(QLocale().toString(scale / m_scannerToScreenDPIScale)));
 }
 
 void MainWindow::onDrawingImageGeometryChanged(QRect geometry) {
+    if (m_dashedCursorController)
+        m_dashedCursorController->setSurfaceImageRect(
+            geometry.translated(m_scannedImageOffset));
+
+    // 'geometry' describes a non-scrolled scanned image prepared for displaying (scaled up).
+    // As long as 'scrollAreaWidgetContents' is usually scrolled, the next expression
+    // effectively translates the rectangular as it would be scrolled relative to
+    // upper top corner of the scroll area client space.
+    assert(m_ui->scrollArea->parentWidget() == m_ui->centralwidget);
     geometry = {
         m_ui->scrollAreaWidgetContents->mapTo(m_ui->centralwidget, geometry.topLeft())
             - m_ui->scrollArea->pos(),
-        geometry.size()};
+        geometry.size()
+    };
 
     m_ui->ruller_top->setParams(geometry.x(), geometry.width(),
         m_lastScannedPicDPI, m_ui->scrollAreaWidgetContents->scale());
@@ -375,6 +433,12 @@ void MainWindow::onDrawingImageGeometryChanged(QRect geometry) {
 }
 
 void MainWindow::onDrawingImageMoved(QPoint pos, QPoint oldPos) {
+    m_scannedImageOffset += pos - oldPos;
+
+    if (m_dashedCursorController)
+        m_dashedCursorController->setSurfaceImageRect(
+            m_ui->scrollAreaWidgetContents->scannedDocImageDisplayGeometry().translated(m_scannedImageOffset));
+
     if (pos.x() != oldPos.x()) {
         m_ui->ruller_top->scrollBy(pos.x() - oldPos.x());
         m_ui->ruller_bottom->scrollBy(pos.x() - oldPos.x());

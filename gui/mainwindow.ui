@@ -80,7 +80,7 @@
      <x>0</x>
      <y>0</y>
      <width>882</width>
-     <height>34</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
@@ -108,7 +108,7 @@
           <item>
            <widget class="QPushButton" name="btnReloadDevs">
             <property name="icon">
-             <iconset resource="../build/gui.debug/qm/app.qrc">
+             <iconset resource="rc/app.qrc">
               <normaloff>:/icons/reload-24.png</normaloff>:/icons/reload-24.png</iconset>
             </property>
             <property name="iconSize">
@@ -227,7 +227,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../build/gui.debug/qm/app.qrc">
+    <iconset resource="rc/app.qrc">
      <normaloff>:/icons/scan.png</normaloff>:/icons/scan.png</iconset>
    </property>
   </action>
@@ -236,7 +236,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../build/gui.debug/qm/app.qrc">
+    <iconset resource="rc/app.qrc">
      <normaloff>:/icons/stop.png</normaloff>:/icons/stop.png</iconset>
    </property>
   </action>
@@ -245,7 +245,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../build/gui.debug/qm/app.qrc">
+    <iconset resource="rc/app.qrc">
      <normaloff>:/icons/zoom-in.png</normaloff>:/icons/zoom-in.png</iconset>
    </property>
   </action>
@@ -254,7 +254,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../build/gui.debug/qm/app.qrc">
+    <iconset resource="rc/app.qrc">
      <normaloff>:/icons/zoom-out.png</normaloff>:/icons/zoom-out.png</iconset>
    </property>
   </action>
@@ -263,7 +263,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../build/gui.debug/qm/app.qrc">
+    <iconset resource="rc/app.qrc">
      <normaloff>:/icons/save.png</normaloff>:/icons/save.png</iconset>
    </property>
   </action>
@@ -272,7 +272,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../build/gui.debug/qm/app.qrc">
+    <iconset resource="rc/app.qrc">
      <normaloff>:/icons/mirror-vert.png</normaloff>:/icons/mirror-vert.png</iconset>
    </property>
   </action>
@@ -281,7 +281,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../build/gui.debug/qm/app.qrc">
+    <iconset resource="rc/app.qrc">
      <normaloff>:/icons/mirror-horz.png</normaloff>:/icons/mirror-horz.png</iconset>
    </property>
   </action>
@@ -290,7 +290,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../build/gui.debug/qm/app.qrc">
+    <iconset resource="rc/app.qrc">
      <normaloff>:/icons/rotate-clock.png</normaloff>:/icons/rotate-clock.png</iconset>
    </property>
   </action>
@@ -299,14 +299,18 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../build/gui.debug/qm/app.qrc">
+    <iconset resource="rc/app.qrc">
      <normaloff>:/icons/rotate-counter-clock.png</normaloff>:/icons/rotate-counter-clock.png</iconset>
    </property>
   </action>
   <action name="actionDashCursor">
-    <property name="enabled">
-      <bool>false</bool>
-    </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="rc/app.qrc">
+     <normaloff>:/icons/square-dashed.png</normaloff>:/icons/square-dashed.png</iconset>
+   </property>
   </action>
  </widget>
  <customwidgets>
@@ -324,7 +328,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../build/gui.debug/qm/app.qrc"/>
+  <include location="rc/app.qrc"/>
  </resources>
  <connections/>
 </ui>

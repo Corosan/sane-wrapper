@@ -171,104 +171,104 @@
         <translation type="vanished">Отдалить</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="113"/>
+        <location filename="mainwindow.cpp" line="129"/>
         <source>Unable to update a list of devices: %1</source>
         <translation>Не удаётся обновить список устройств: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="116"/>
+        <location filename="mainwindow.cpp" line="132"/>
         <source>Unable to update a list of devices, no additional info</source>
         <translation>Не удаётся обновить список устройств, нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="162"/>
+        <location filename="mainwindow.cpp" line="178"/>
         <source>Unable to open device &quot;%1&quot;: %2</source>
         <translation>Не удаётся открыть устройство &quot;%1&quot;: %2</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="167"/>
+        <location filename="mainwindow.cpp" line="183"/>
         <source>Unable to open device &quot;%1&quot;, no additional info</source>
         <translation>Не удаётся открыть устройство &quot;%1&quot;: нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="178"/>
+        <location filename="mainwindow.cpp" line="194"/>
         <source>Unable to observe device &quot;%1&quot; options: %2</source>
         <translation>Не удаётся прочитать опции устройства &quot;%1&quot;: %2</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="183"/>
+        <location filename="mainwindow.cpp" line="199"/>
         <source>Unable to observe device &quot;%1&quot; options, no additional info</source>
         <translation>Не удаётся прочитать опции устройства &quot;%1&quot;, нет дополнительной информации</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="198"/>
+        <location filename="mainwindow.cpp" line="214"/>
         <source>Error happened while changing scanner options. Try to re-open the device. Additional details:
 %1</source>
         <translation>Произошла ошибка во время установки опций сканнера. Попробуйте переоткрыть устройство. Дополнительные детали:
 %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="241"/>
+        <location filename="mainwindow.cpp" line="257"/>
         <source>Scanning...</source>
         <translation>Сканирование...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="251"/>
+        <location filename="mainwindow.cpp" line="267"/>
         <source>Scanning... %L1%</source>
         <oldsource>Scanning... %1%%</oldsource>
         <translation>Сканирование... %L1%</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="253"/>
+        <location filename="mainwindow.cpp" line="269"/>
         <source>Scanning... %1 bytes</source>
         <translation>Сканирование... %1 байт</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="257"/>
+        <location filename="mainwindow.cpp" line="273"/>
         <source>Cancelling...</source>
         <translation>Отмена...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="287"/>
+        <location filename="mainwindow.cpp" line="303"/>
         <source>Save Image to a file</source>
         <translation>Запись изображения в файл</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="288"/>
+        <location filename="mainwindow.cpp" line="304"/>
         <source>Jpeg images (*.jpg *.jpeg)(*.jpg *.jpeg);;Png images (*.png)(*.png);;All files (*.*)(*)</source>
         <oldsource>Jpeg images (*.jpg *.jpeg)(*.jpg *.jpeg);;All files (*.*)(*)</oldsource>
         <translation>Изображения jpeg (*.jpg *.jpeg)(*.jpg *.jpeg);;Изображени png (*.png)(*.png);;Все файлы (*.*)(*)</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="295"/>
+        <location filename="mainwindow.cpp" line="311"/>
         <source>Please provide destination file name with one of supported extensions (see filters in the save dialog)</source>
         <translation>Пожалуйста укажите конечный файл с одним из поддерживаемых расширений (см. фильтры в диалоге сохранения)</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="301"/>
+        <location filename="mainwindow.cpp" line="317"/>
         <source>Error happened during saving the image into:
 %1</source>
         <translation>Ошибка во время сохранения изображения в:
 %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="303"/>
+        <location filename="mainwindow.cpp" line="319"/>
         <source>The image stored into %1</source>
         <translation>Изображение сохранено в %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="309"/>
+        <location filename="mainwindow.cpp" line="339"/>
         <source>The application can&apos;t be closed while scanning operation is in progress</source>
         <translation>Нельзя закрыть приложение пока запущено сканирование</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="352"/>
+        <location filename="mainwindow.cpp" line="400"/>
         <source>x %1</source>
         <oldsource>x%1</oldsource>
         <translation>x %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="400"/>
+        <location filename="mainwindow.cpp" line="464"/>
         <source>%1x%2 (%3x%4 mm)</source>
         <translation>%1x%2 (%3x%4 мм)</translation>
     </message>
@@ -277,17 +277,17 @@
         <translation type="vanished">масштаб: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="371"/>
+        <location filename="mainwindow.cpp" line="429"/>
         <source>cm</source>
         <translation>см</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="371"/>
+        <location filename="mainwindow.cpp" line="429"/>
         <source>mm</source>
         <translation>мм</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="282"/>
+        <location filename="mainwindow.cpp" line="298"/>
         <source> - error</source>
         <translation> - ошибка</translation>
     </message>

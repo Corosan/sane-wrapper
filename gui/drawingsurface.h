@@ -1,5 +1,7 @@
 #pragma once
 
+#include "surface_widgets.h"
+
 #include <QSize>
 #include <QRect>
 #include <QWidget>
@@ -92,7 +94,8 @@ protected:
 /*!
  * \brief A scanned doc image holder and displaying widget with scrolling support
  */
-class DrawingSurface : public QWidget, public IImageHolder {
+class DrawingSurface
+    : public QWidget, public IImageHolder, drawing::IUpdatePlane, public drawing::PlaneBase {
     Q_OBJECT
 
     Q_PROPERTY(float scale READ scale WRITE setScale NOTIFY scaleChanged)
@@ -104,6 +107,16 @@ public:
     const QPen& getDashCursorPen() const { return m_dashCursorPen; }
     QSize sizeHint() const override { return m_thisSurfaceSize; }
     const QImage& getImage() const { return m_scannedDocImage; }
+    QRect scannedDocImageDisplayGeometry() const {
+        return {QPoint(m_marginWidth, m_marginWidth), m_scannedDocImageDisplaySize};
+    }
+    void setMouseOpsConsumer(drawing::ISurfaceMouseOps& v) {
+        m_surfaceMouseOpsConsumer = &v;
+    }
+
+    void clearMouseOpsConsumer() {
+        m_surfaceMouseOpsConsumer = nullptr;
+    }
 
     // Available operations on the underlying image
 
@@ -112,11 +125,16 @@ public:
 
 protected:
     void paintEvent(QPaintEvent*) override;
-    void enterEvent(QEvent* event) override;
-    void leaveEvent(QEvent *event) override;
-    void mouseMoveEvent(QMouseEvent* event) override;
     void moveEvent(QMoveEvent*) override;
     void resizeEvent(QResizeEvent*) override;
+
+#if QT_VERSION >= 0x060000
+    void enterEvent(QEnterEvent*) override;
+#else
+    void enterEvent(QEvent*) override;
+#endif
+    void leaveEvent(QEvent*) override;
+    void mouseMoveEvent(QMouseEvent*) override;
 
 private:
     class DashedCursorLine {
@@ -162,11 +180,22 @@ private:
     QPen m_dashCursorPen;
     DashedCursorLine m_horzDashCursor, m_vertDashCursor;
 
+    QPoint m_currentlyScrolledBy;
+    drawing::ISurfaceMouseOps* m_surfaceMouseOpsConsumer = nullptr;
+
     // IImageHolder interface implementation
 
     QImage& image() override final { return m_scannedDocImage; }
     void redrawImageRect(const QRect& r) override final { redrawScannedDocImage(r); }
     void recalcImageGeometry() override final { recalcScannedDocImageGeometry(); }
+
+    // drawing::IUpdatePlane interface implementation
+
+    void invalidatePlane(int x, int y, int w, int h) override { update(x, y, w, h); }
+    void invalidatePlane(const QRect &rect) override { update(rect); }
+    void invalidatePlane(const QRegion &rgn) override { update(rgn); }
+    QSize planeSize() override { return size(); }
+    QPoint visualOffset() override { return m_currentlyScrolledBy; }
 
     // internal methods
 

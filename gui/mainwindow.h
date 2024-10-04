@@ -1,8 +1,8 @@
 #pragma once
 
 #include "scanworker.h"
+#include "surface_widgets.h"
 
-#include <QScopedPointer>
 #include <QString>
 #include <QRect>
 #include <QVariant>
@@ -19,7 +19,13 @@ QT_END_NAMESPACE
 
 class Capturer;
 
-class MainWindow final : public QMainWindow {
+namespace drawing {
+
+class DashedCursorController;
+
+}
+
+class MainWindow final : public QMainWindow, drawing::IPlaneProvider {
     Q_OBJECT
 
 public:
@@ -51,7 +57,7 @@ private slots:
     void on_actionDashCursor_triggered();
 
 private:
-    QScopedPointer<Ui::MainWindow> m_ui;
+    std::unique_ptr<Ui::MainWindow> m_ui;
     /*!
      * \brief current display scale of the drawing surface as it's written on a status bar
      */
@@ -70,9 +76,19 @@ private:
     double m_lastScannedPicDPI = -1.0;
     double m_scannerToScreenDPIScale = 1.0;
 
-    QScopedPointer<Capturer> m_imageCapturer;
+    QPoint m_scannedImageOffset;
 
-    void closeEvent(QCloseEvent* ev) override;
+    std::unique_ptr<Capturer> m_imageCapturer;
+    std::unique_ptr<drawing::DashedCursorController> m_dashedCursorController;
+
+    void closeEvent(QCloseEvent*) override;
+    void showEvent(QShowEvent*) override;
+
+    drawing::IPlane& getRullerTopPlane() override;
+    drawing::IPlane& getRullerBottomPlane() override;
+    drawing::IPlane& getRullerLeftPlane() override;
+    drawing::IPlane& getRullerRightPlane() override;
+    drawing::IPlane& getSurfacePlane() override;
 };
 
 class OptionItemDelegate : public QStyledItemDelegate {

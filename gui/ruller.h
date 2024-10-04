@@ -1,16 +1,25 @@
 #pragma once
 
+#include "surface_widgets.h"
+
 #include <QWidget>
 #include <QPen>
 
-class Ruller : public QWidget
+class Ruller
+    : public QWidget, drawing::IUpdatePlane, public drawing::PlaneBase
 {
 public:
-    enum class Orientation : char { Left, Top, Right, Bottom };
-    Q_ENUM(Orientation)
+    enum class Position : char { Left, Top, Right, Bottom };
+    Q_ENUM(Position)
 
 private:
     Q_OBJECT
+
+    void invalidatePlane(int x, int y, int w, int h) override { update(x, y, w, h); }
+    void invalidatePlane(const QRect &rect) override { update(rect); }
+    void invalidatePlane(const QRegion &rgn) override { update(rgn); }
+    QSize planeSize() override { return size(); }
+    QPoint visualOffset() override { return m_offsetToSurface; }
 
 public:
     explicit Ruller(QWidget *parent = nullptr);
@@ -19,8 +28,11 @@ public slots:
     void setDashedCursorPen(const QPen& pen) {
         m_dashCursorPen = pen;
     }
-    void setOrientation(Ruller::Orientation val) {
+    void setOrientation(Ruller::Position val) {
         m_orientation = val;
+    }
+    void setOffsetToSurface(QPoint v) {
+        m_offsetToSurface = v;
     }
 
     /*!
@@ -43,7 +55,8 @@ protected:
     void paintEvent(QPaintEvent*) override;
 
 private:
-    Orientation m_orientation = Orientation::Left;
+    Position m_orientation = Position::Left;
+    QPoint m_offsetToSurface;
     QPen m_dashCursorPen;
     int m_dashCursorPos = -1;
     int m_picOffsetPx;

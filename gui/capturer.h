@@ -7,7 +7,6 @@
 #include <QObject>
 #include <QString>
 #include <QVariant>
-#include <QScopedPointer>
 
 #include <exception>
 #include <variant>
@@ -54,7 +53,7 @@ private:
 
     vg_sane::device& m_scannerDevice;
     IImageHolder& m_imageHolder;
-    QScopedPointer<IImageBuilder> m_imageBuilder;
+    std::unique_ptr<IImageBuilder> m_imageBuilder;
     std::exception_ptr m_lastError;
     QString m_lastErrorContext;
     int m_lineCountHint;

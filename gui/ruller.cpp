@@ -3,6 +3,7 @@
 #include <QPainter>
 #include <QLine>
 #include <QPaintEvent>
+#include <QLocale>
 
 #include <QtGlobal>
 #include <QDebug>
@@ -15,6 +16,7 @@ static const double g_InchMm = 25.4;
 
 Ruller::Ruller(QWidget *parent)
     : QWidget{parent}
+    , PlaneBase(this)
     , m_mmExp{std::numeric_limits<int>::min()} {
 
     setAutoFillBackground(true);
@@ -45,7 +47,7 @@ void Ruller::setParams(int picOffsetPx, int picSizePx, float scannerDPI, float s
 void Ruller::scrollBy(int delta) {
     m_picOffsetPx += delta;
 
-    if (m_orientation == Orientation::Top || m_orientation == Orientation::Bottom)
+    if (m_orientation == Position::Top || m_orientation == Position::Bottom)
         scroll(delta, 0, QRect(1, 1, width() - 2, height() - 2));
     else
         scroll(0, delta, QRect(1, 1, width() - 2, height() - 2));
@@ -54,7 +56,7 @@ void Ruller::scrollBy(int delta) {
 void Ruller::updateDashedCursor(int startDispSurfaceRedrawPos, int stopDispSurfaceRedrawPos, int cursorPos) {
     m_dashCursorPos = cursorPos;
 
-    if (m_orientation == Orientation::Top || m_orientation == Orientation::Bottom)
+    if (m_orientation == Position::Top || m_orientation == Position::Bottom)
         update(startDispSurfaceRedrawPos + m_picOffsetPx, 1, stopDispSurfaceRedrawPos - startDispSurfaceRedrawPos + 1, height() - 2);
     else
         update(1, startDispSurfaceRedrawPos + m_picOffsetPx, width() - 2, stopDispSurfaceRedrawPos - startDispSurfaceRedrawPos + 1);
@@ -79,10 +81,10 @@ void Ruller::paintEvent(QPaintEvent* ev) {
 
         const double stepLabel = std::pow(10.0, m_mmExp <= 0 ? m_mmExp : m_mmExp - 1);
         const double stepL = m_scannerDPI * m_picScale / InchMm * std::pow(10.0, m_mmExp);
-        int k = m_orientation == Orientation::Top || m_orientation == Orientation::Bottom
+        int k = m_orientation == Position::Top || m_orientation == Position::Bottom
             ? std::max((int)std::floor((ev->rect().x() - m_picOffsetPx) / stepL), 0)
             : std::max((int)std::floor((ev->rect().y() - m_picOffsetPx) / stepL), 0);
-        const int KLimit = m_orientation == Orientation::Top || m_orientation == Orientation::Bottom
+        const int KLimit = m_orientation == Position::Top || m_orientation == Position::Bottom
             ? (int)std::ceil(std::min(ev->rect().right() + 1 - m_picOffsetPx, m_picSizePx) / stepL)
             : (int)std::ceil(std::min(ev->rect().bottom() + 1 - m_picOffsetPx, m_picSizePx) / stepL);
         const int minFullStickSetWidthPx = 40;
@@ -90,22 +92,22 @@ void Ruller::paintEvent(QPaintEvent* ev) {
 
         switch (m_orientation)
         {
-        case Orientation::Top:
+        case Position::Top:
             mainStickLine = {0, height() - 2, 0, height() - 2 - 2 * height() / 3};
             subStickLine = {0, height() - 2, 0, height() - 2 - height() / 2};
             smallStickLine = {0, height() - 2, 0, height() - 2 - height() / 3};
             break;
-        case Orientation::Bottom:
+        case Position::Bottom:
             mainStickLine = {0, 2, 0, 2 + 2 * height() / 3};
             subStickLine = {0, 2, 0, 2 + height() / 2};
             smallStickLine = {0, 2, 0, 2 + height() / 3};
             break;
-        case Orientation::Left:
+        case Position::Left:
             mainStickLine = {width() - 2, 0, width() - 2 - 2 * width() / 3, 0};
             subStickLine = {width() - 2, 0, width() - 2 - width() / 2, 0};
             smallStickLine = {width() - 2, 0, width() - 2 - width() / 3, 0};
             break;
-        case Orientation::Right:
+        case Position::Right:
             mainStickLine = {2, 0, 2 + 2 * width() / 3, 0};
             subStickLine = {2, 0, 2 + width() / 2, 0};
             smallStickLine = {2, 0, 2 + width() / 3, 0};
@@ -118,7 +120,7 @@ void Ruller::paintEvent(QPaintEvent* ev) {
         for (; k <= KLimit; ++k) {
             int posPx = m_picOffsetPx + static_cast<int>(k * stepL);
 
-            QLine l = (m_orientation == Orientation::Top || m_orientation == Orientation::Bottom)
+            QLine l = (m_orientation == Position::Top || m_orientation == Position::Bottom)
                 ? mainStickLine.translated(posPx, 0) : mainStickLine.translated(0, posPx);
             painter.drawLine(l);
 
@@ -126,16 +128,16 @@ void Ruller::paintEvent(QPaintEvent* ev) {
 
             switch (m_orientation)
             {
-            case Orientation::Top:
+            case Position::Top:
                 painter.drawText(posPx + 2, fontInfo().pixelSize(), labelText);
                 break;
-            case Orientation::Bottom:
+            case Position::Bottom:
                 painter.drawText(posPx + 2, height() - 3, labelText);
                 break;
-            case Orientation::Left:
+            case Position::Left:
                 painter.drawText(2, posPx + 2 + fontInfo().pixelSize(), labelText);
                 break;
-            case Orientation::Right:
+            case Position::Right:
                 painter.drawText(QRectF(0, posPx, width() - 2, fontInfo().pixelSize() + 4), labelText, QTextOption{Qt::AlignRight});
                 break;
             }
@@ -148,7 +150,7 @@ void Ruller::paintEvent(QPaintEvent* ev) {
                 for (int i = 1; i < 10; ++i) {
                     posPx = m_picOffsetPx + static_cast<int>((k + i / 10.0) * stepL);
 
-                    l = (m_orientation == Orientation::Top || m_orientation == Orientation::Bottom)
+                    l = (m_orientation == Position::Top || m_orientation == Position::Bottom)
                         ? (i == 5 ? subStickLine.translated(posPx, 0) : smallStickLine.translated(posPx, 0))
                         : (i == 5 ? subStickLine.translated(0, posPx) : smallStickLine.translated(0, posPx));
 
@@ -157,7 +159,7 @@ void Ruller::paintEvent(QPaintEvent* ev) {
             } else {
                 posPx = m_picOffsetPx + static_cast<int>((k + 0.5) * stepL);
 
-                l = (m_orientation == Orientation::Top || m_orientation == Orientation::Bottom)
+                l = (m_orientation == Position::Top || m_orientation == Position::Bottom)
                     ? smallStickLine.translated(posPx, 0) : smallStickLine.translated(0, posPx);
 
                 painter.drawLine(l);
@@ -167,7 +169,7 @@ void Ruller::paintEvent(QPaintEvent* ev) {
 
     if (m_dashCursorPos >= 0) {
         QRect r;
-        if (m_orientation == Orientation::Top || m_orientation == Orientation::Bottom)
+        if (m_orientation == Position::Top || m_orientation == Position::Bottom)
             r = {m_dashCursorPos + m_picOffsetPx, 1, 1, height() - 2};
         else
             r = {1, m_dashCursorPos + m_picOffsetPx, width() - 2, 1};
@@ -177,4 +179,6 @@ void Ruller::paintEvent(QPaintEvent* ev) {
             painter.drawLine(r.topLeft(), r.bottomRight());
         }
     }
+
+    PlaneBase::draw(painter, ev);
 }

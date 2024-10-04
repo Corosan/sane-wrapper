@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="mirror-horz.png">icons/mirror-horz.png</file>
+        <file alias="mirror-vert.png">icons/mirror-vert.png</file>
+        <file alias="reload-24.png">icons/reload-24.png</file>
+        <file alias="reload.png">icons/reload.png</file>
+        <file alias="rotate-clock.png">icons/rotate-clock.png</file>
+        <file alias="rotate-counter-clock.png">icons/rotate-counter-clock.png</file>
+        <file alias="save.png">icons/save.png</file>
+        <file alias="scan.png">icons/scan.png</file>
+        <file alias="stop.png">icons/stop.png</file>
+        <file alias="zoom-in.png">icons/zoom-in.png</file>
+        <file alias="zoom-out.png">icons/zoom-out.png</file>
+        <file alias="square-dashed.png">icons/square-dashed.png</file>
+    </qresource>
+</RCC>
