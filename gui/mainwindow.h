@@ -85,7 +85,6 @@ private:
 
     void closeEvent(QCloseEvent*) override;
     void showEvent(QShowEvent*) override;
-//    bool eventFilter(QObject *watched, QEvent *event) override;
 
     drawing::IPlane& getRullerTopPlane() override;
     drawing::IPlane& getRullerBottomPlane() override;

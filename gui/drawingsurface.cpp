@@ -285,8 +285,6 @@ void DrawingSurface::paintEvent(QPaintEvent* ev) {
 
     if (! imageDisplayRect.isEmpty())
         painter.drawPixmap(imageDisplayRect, m_displayedPixmap, imageDisplayRect.translated(-tl));
-
-    drawing::PlaneBase::draw(painter, ev);
 }
 
 void DrawingSurface::moveEvent(QMoveEvent* ev) {

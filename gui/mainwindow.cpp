@@ -29,21 +29,11 @@
 #include <memory>
 #include <cassert>
 
-drawing::IPlane& MainWindow::getRullerTopPlane() {
-    return *m_ui->ruller_top;
-}
-drawing::IPlane& MainWindow::getRullerBottomPlane() {
-    return *m_ui->ruller_bottom;
-}
-drawing::IPlane& MainWindow::getRullerLeftPlane() {
-    return *m_ui->ruller_left;
-}
-drawing::IPlane& MainWindow::getRullerRightPlane() {
-    return *m_ui->ruller_right;
-}
-drawing::IPlane& MainWindow::getSurfacePlane() {
-    return *m_ui->scrollAreaWidgetContents;
-}
+drawing::IPlane& MainWindow::getRullerTopPlane() { return *m_ui->ruller_top; }
+drawing::IPlane& MainWindow::getRullerBottomPlane() { return *m_ui->ruller_bottom; }
+drawing::IPlane& MainWindow::getRullerLeftPlane() { return *m_ui->ruller_left; }
+drawing::IPlane& MainWindow::getRullerRightPlane() { return *m_ui->ruller_right; }
+drawing::IPlane& MainWindow::getSurfacePlane() { return *m_drawingWidget; }
 
 MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     : QMainWindow(parent)
@@ -316,17 +306,26 @@ void MainWindow::on_actionSave_triggered() {
 }
 
 void MainWindow::showEvent(QShowEvent*) {
-    // Adjust rullers' offsets once the main window is shown for the first time
-    int xOffset = m_ui->scrollAreaWidgetContents->mapFromGlobal(
+    // Adjust rullers' offsets once the main window is shown for the first time.
+    // As long as mouse control events going to widget controllers are expressed
+    // in th {DrawingWidget} coordinates, rullers' offsets should be re-calculated
+    // related to the m_drawingWidget object.
+
+    int xOffset = m_drawingWidget->mapFromGlobal(
         m_ui->ruller_top->parentWidget()->mapToGlobal(
             m_ui->ruller_top->geometry().topLeft())).x();
-    int yOffset =m_ui->scrollAreaWidgetContents->mapFromGlobal(
-        m_ui->ruller_top->parentWidget()->mapToGlobal(
+    int yOffset = m_drawingWidget->mapFromGlobal(
+        m_ui->ruller_left->parentWidget()->mapToGlobal(
             m_ui->ruller_left->geometry().topLeft())).y();
+
     m_ui->ruller_top->setOffsetToSurface(QPoint{xOffset, 0});
     m_ui->ruller_bottom->setOffsetToSurface(QPoint{xOffset, 0});
     m_ui->ruller_left->setOffsetToSurface(QPoint{0, yOffset});
     m_ui->ruller_right->setOffsetToSurface(QPoint{0, yOffset});
+
+    m_scannedImageOffset = m_drawingWidget->mapFromGlobal(
+        m_ui->scrollAreaWidgetContents->mapToGlobal(
+            m_ui->scrollAreaWidgetContents->geometry().topLeft()));
 }
 
 void MainWindow::closeEvent(QCloseEvent* ev) {
@@ -384,21 +383,7 @@ void MainWindow::on_actionDashCursor_triggered() {
         m_drawingWidget->setMouseOpsConsumer(nullptr);
         m_dashedCursorController.reset();
     }
-
-//    m_ui->scrollAreaWidgetContents->showDashCursor(
-//        ! m_ui->scrollAreaWidgetContents->dashCursorShown());
 }
-
-/*
-bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
-    if (watched == m_drawingWidget.get()) {
-        if (event->type() == )
-        return true;
-    }
-
-    return QMainWindow::eventFilter(watched, event);
-}
-*/
 
 void MainWindow::onDrawingImageScaleChanged(float scale) {
     if (m_dashedCursorController)

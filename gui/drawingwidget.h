@@ -4,14 +4,21 @@
 
 #include <QWidget>
 #include <QPainter>
+#include <QPoint>
 #include <QEvent>
 #include <QResizeEvent>
 #include <QMoveEvent>
 #include <QMouseEvent>
 
-class DrawingWidget : public QWidget {
+#include <QtDebug>
+
+class DrawingWidget
+    : public QWidget, drawing::IUpdatePlane, public drawing::PlaneBase {
 public:
-    using QWidget::QWidget;
+    explicit DrawingWidget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags())
+        : QWidget(parent, f)
+        , PlaneBase(this) {
+    }
 
     void setMouseOpsConsumer(drawing::ISurfaceMouseOps* v) {
         m_surfaceMouseOpsConsumer = v;
@@ -30,7 +37,7 @@ private:
     void paintEvent(QPaintEvent* ev) override {
         QPainter p(this);
 
-        p.drawLine(0, 0, size().width(), size().height());
+        PlaneBase::draw(p, ev);
     }
 
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -42,4 +49,11 @@ private:
 #endif
     void leaveEvent(QEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
+
+    // drawing::IUpdatePlane interface implementation
+
+    void invalidatePlane(int x, int y, int w, int h) override { update(x, y, w, h); }
+    void invalidatePlane(const QRect &rect) override { update(rect); }
+    void invalidatePlane(const QRegion &rgn) override { update(rgn); }
+    QSize planeSize() override { return size(); }
 };

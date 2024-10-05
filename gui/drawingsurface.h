@@ -94,17 +94,13 @@ protected:
 /*!
  * \brief A scanned doc image holder and displaying widget with scrolling support
  */
-class DrawingSurface
-    : public QWidget, public IImageHolder, drawing::IUpdatePlane, public drawing::PlaneBase {
+class DrawingSurface : public QWidget, public IImageHolder {
     Q_OBJECT
 
     Q_PROPERTY(float scale READ scale WRITE setScale NOTIFY scaleChanged)
 
 public:
-    explicit DrawingSurface(QWidget *parent = nullptr)
-        : QWidget(parent)
-        , PlaneBase(this) {
-    }
+    using QWidget::QWidget;
 
     QSize sizeHint() const override { return m_thisSurfaceSize; }
     const QImage& getImage() const { return m_scannedDocImage; }
@@ -147,14 +143,6 @@ private:
     void paintEvent(QPaintEvent*) override;
     void moveEvent(QMoveEvent*) override;
     void resizeEvent(QResizeEvent*) override;
-
-    // drawing::IUpdatePlane interface implementation
-
-    void invalidatePlane(int x, int y, int w, int h) override { update(x, y, w, h); }
-    void invalidatePlane(const QRect &rect) override { update(rect); }
-    void invalidatePlane(const QRegion &rgn) override { update(rgn); }
-    QSize planeSize() override { return size(); }
-    QPoint visualOffset() override { return m_currentlyScrolledBy; }
 
     // internal methods
 
