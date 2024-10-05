@@ -101,38 +101,21 @@ class DrawingSurface
     Q_PROPERTY(float scale READ scale WRITE setScale NOTIFY scaleChanged)
 
 public:
-    explicit DrawingSurface(QWidget *parent = nullptr);
+    explicit DrawingSurface(QWidget *parent = nullptr)
+        : QWidget(parent)
+        , PlaneBase(this) {
+    }
 
     QSize sizeHint() const override { return m_thisSurfaceSize; }
     const QImage& getImage() const { return m_scannedDocImage; }
     QRect scannedDocImageDisplayGeometry() const {
         return {QPoint(m_marginWidth, m_marginWidth), m_scannedDocImageDisplaySize};
     }
-    void setMouseOpsConsumer(drawing::ISurfaceMouseOps& v) {
-        m_surfaceMouseOpsConsumer = &v;
-    }
-
-    void clearMouseOpsConsumer() {
-        m_surfaceMouseOpsConsumer = nullptr;
-    }
 
     // Available operations on the underlying image
 
     void mirror(bool isVertical);
     void rotate(bool isClockWise);
-
-protected:
-    void paintEvent(QPaintEvent*) override;
-    void moveEvent(QMoveEvent*) override;
-    void resizeEvent(QResizeEvent*) override;
-
-#if QT_VERSION >= 0x060000
-    void enterEvent(QEnterEvent*) override;
-#else
-    void enterEvent(QEvent*) override;
-#endif
-    void leaveEvent(QEvent*) override;
-    void mouseMoveEvent(QMouseEvent*) override;
 
 private:
     /*!
@@ -152,13 +135,18 @@ private:
     QBrush m_segmentBrushes[8];
 
     QPoint m_currentlyScrolledBy;
-    drawing::ISurfaceMouseOps* m_surfaceMouseOpsConsumer = nullptr;
 
     // IImageHolder interface implementation
 
     QImage& image() override final { return m_scannedDocImage; }
     void redrawImageRect(const QRect& r) override final { redrawScannedDocImage(r); }
     void recalcImageGeometry() override final { recalcScannedDocImageGeometry(); }
+
+    // QWidget overrides
+
+    void paintEvent(QPaintEvent*) override;
+    void moveEvent(QMoveEvent*) override;
+    void resizeEvent(QResizeEvent*) override;
 
     // drawing::IUpdatePlane interface implementation
 

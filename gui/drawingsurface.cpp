@@ -41,14 +41,7 @@ unsigned char* IImageHolder::ImageModifier::scanLine(int i, int leftAffectedPx, 
     return m_imageHolder->image().scanLine(i);
 }
 
-
-DrawingSurface::DrawingSurface(QWidget *parent)
-    : QWidget(parent)
-    , PlaneBase(this) {
-    //setAttribute(Qt::WA_NoSystemBackground);
-    setMouseTracking(true);
-}
-
+//-----------------------------------------------------------------------------
 void DrawingSurface::setScale(float val) {
     if (val != m_scale) {
         m_scale = val;
@@ -308,25 +301,4 @@ void DrawingSurface::resizeEvent(QResizeEvent* ev) {
         QRect(
             QPoint(m_marginWidth, m_marginWidth),
             m_scannedDocImageDisplaySize));
-}
-
-#if QT_VERSION >= 0x060000
-void DrawingSurface::enterEvent(QEnterEvent*) {
-#else
-void DrawingSurface::enterEvent(QEvent*) {
-#endif
-    if (m_surfaceMouseOpsConsumer)
-        m_surfaceMouseOpsConsumer->onSurfaceMouseEnterEvent(
-            parentWidget()->mapFromGlobal(QCursor::pos()));
-}
-
-void DrawingSurface::mouseMoveEvent(QMouseEvent* event) {
-    if (m_surfaceMouseOpsConsumer)
-        m_surfaceMouseOpsConsumer->onSurfaceMouseMoveEvent(
-            parentWidget()->mapFromGlobal(QCursor::pos()));
-}
-
-void DrawingSurface::leaveEvent(QEvent*) {
-    if (m_surfaceMouseOpsConsumer)
-        m_surfaceMouseOpsConsumer->onSurfaceMouseLeaveEvent();
 }

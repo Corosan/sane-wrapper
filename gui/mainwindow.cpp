@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include "drawingsurface.h"
+#include "drawingwidget.h"
 #include "capturer.h"
 
 #include <QMetaType>
@@ -50,6 +51,10 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
     , m_saneLibWrapperPtr{saneLibWrapper} {
 
     m_ui->setupUi(this);
+
+    m_drawingWidget = std::make_unique<DrawingWidget>(m_ui->scrollArea->viewport());
+    m_ui->scrollArea->viewport()->installEventFilter(m_drawingWidget.get());
+    m_drawingWidget->setMouseTracking(true);
 
     m_ui->ruller_top->setOrientation(Ruller::Position::Top);
     m_ui->ruller_right->setOrientation(Ruller::Position::Right);
@@ -372,15 +377,28 @@ void MainWindow::on_actionDashCursor_triggered() {
         m_dashedCursorController->setScannedCoordsChangedCb([this](QPoint p){
                 onDashCursorPositionChanged(p.x(), p.y());
             });
-        m_ui->scrollAreaWidgetContents->setMouseOpsConsumer(*m_dashedCursorController);
+        //m_ui->scrollAreaWidgetContents->setMouseOpsConsumer(*m_dashedCursorController);
+        m_drawingWidget->setMouseOpsConsumer(m_dashedCursorController.get());
     } else {
-        m_ui->scrollAreaWidgetContents->clearMouseOpsConsumer();
+        //m_ui->scrollAreaWidgetContents->clearMouseOpsConsumer();
+        m_drawingWidget->setMouseOpsConsumer(nullptr);
         m_dashedCursorController.reset();
     }
 
 //    m_ui->scrollAreaWidgetContents->showDashCursor(
 //        ! m_ui->scrollAreaWidgetContents->dashCursorShown());
 }
+
+/*
+bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
+    if (watched == m_drawingWidget.get()) {
+        if (event->type() == )
+        return true;
+    }
+
+    return QMainWindow::eventFilter(watched, event);
+}
+*/
 
 void MainWindow::onDrawingImageScaleChanged(float scale) {
     if (m_dashedCursorController)

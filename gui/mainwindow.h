@@ -18,6 +18,7 @@ namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class Capturer;
+class DrawingWidget;
 
 namespace drawing {
 
@@ -57,6 +58,8 @@ private slots:
 
 private:
     std::unique_ptr<Ui::MainWindow> m_ui;
+    std::unique_ptr<DrawingWidget> m_drawingWidget;
+
     /*!
      * \brief current display scale of the drawing surface as it's written on a status bar
      */
@@ -82,6 +85,7 @@ private:
 
     void closeEvent(QCloseEvent*) override;
     void showEvent(QShowEvent*) override;
+//    bool eventFilter(QObject *watched, QEvent *event) override;
 
     drawing::IPlane& getRullerTopPlane() override;
     drawing::IPlane& getRullerBottomPlane() override;
