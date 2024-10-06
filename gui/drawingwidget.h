@@ -49,6 +49,8 @@ private:
 #endif
     void leaveEvent(QEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
+    void mousePressEvent(QMouseEvent*) override;
+    void mouseReleaseEvent(QMouseEvent*) override;
 
     // drawing::IUpdatePlane interface implementation
 

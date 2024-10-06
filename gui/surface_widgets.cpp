@@ -34,6 +34,8 @@ QRect DashedCursorLineWidget<V>::getRect(int cursorPos, IUpdatePlane* plane, boo
         QSize sz = plane->planeSize();
         QPoint scrolledBy = plane->visualOffset();
 
+        // Anti-aliased drawing is made in the middle of two pixels - 0.5 of pixel is drawn
+        // on a '-1' position, and 0.5 - on '0' position.
         if (s_isHorizontal)
             return {
                 1 - scrolledBy.x(),
@@ -92,8 +94,48 @@ void DashedCursorLineWidget<V>::setCursorPos(int v) {
 template class DashedCursorLineWidget<true>;
 template class DashedCursorLineWidget<false>;
 
-//-----------------------------------------------------------------------------
+void DashedRectWidget::draw(IUpdatePlane* pl, QPainter& p, QPaintEvent* ev, SurfaceTag) {
+    if (! m_rc.isValid())
+        return;
 
+    auto rc = m_rc.translated(-pl->visualOffset());
+    if (! rc.intersected(ev->rect()).isEmpty()) {
+        p.setPen(m_dashPen);
+        p.drawRect(rc);
+    }
+}
+
+static QRegion getUpdateRegionAroundRect(const QRect& rc) {
+    if (rc.isNull())
+        return {};
+
+    QRegion rg{QRect{rc.x() - 1, rc.y() - 1, rc.width() + 2, 2}};
+    rg += QRect{rc.x() + rc.width() - 1, rc.y() - 1, 2, rc.height() + 2};
+    rg += QRect{rc.x() - 1, rc.y() - 1, 2, rc.height() + 2};
+    rg += QRect{rc.x() - 1, rc.y() + rc.height() - 1, rc.width() + 2, 2};
+    return rg;
+}
+
+void DashedRectWidget::onUpdatePlane(IUpdatePlane* old, IUpdatePlane* nw, SurfaceTag) {
+    IUpdatePlane* p = nw ? nw : old;
+
+    if (! m_rc.isValid())
+        return;
+
+    p->invalidatePlane(getUpdateRegionAroundRect(m_rc.translated(-p->visualOffset())));
+}
+
+void DashedRectWidget::setRect(const QRect& rc) {
+    if (rc == m_rc)
+        return;
+
+    auto old = m_rc;
+    m_rc = rc;
+    m_plane->invalidatePlane(
+        getUpdateRegionAroundRect(old) + getUpdateRegionAroundRect(m_rc));
+}
+
+//-----------------------------------------------------------------------------
 DashedCursorController::DashedCursorController(IPlaneProvider& pp)
     : m_pp(&pp) {
     m_pp->getRullerLeftPlane().insertWidget(m_horzLine.getView<RullerLeftTag>(), 0);

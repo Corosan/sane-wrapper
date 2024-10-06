@@ -21,13 +21,22 @@ void DrawingWidget::enterEvent(QEvent*) {
             mapFromGlobal(QCursor::pos()));
 }
 
-void DrawingWidget::mouseMoveEvent(QMouseEvent* event) {
+void DrawingWidget::mouseMoveEvent(QMouseEvent* ev) {
     if (m_surfaceMouseOpsConsumer)
-        m_surfaceMouseOpsConsumer->onSurfaceMouseMoveEvent(
-            mapFromGlobal(QCursor::pos()));
+        m_surfaceMouseOpsConsumer->onSurfaceMouseMoveEvent(ev->pos());
 }
 
 void DrawingWidget::leaveEvent(QEvent*) {
     if (m_surfaceMouseOpsConsumer)
         m_surfaceMouseOpsConsumer->onSurfaceMouseLeaveEvent();
+}
+
+void DrawingWidget::mousePressEvent(QMouseEvent* ev) {
+    if (m_surfaceMouseOpsConsumer)
+        m_surfaceMouseOpsConsumer->onSurfaceMousePressEvent(ev->pos());
+}
+
+void DrawingWidget::mouseReleaseEvent(QMouseEvent* ev) {
+    if (m_surfaceMouseOpsConsumer)
+        m_surfaceMouseOpsConsumer->onSurfaceMouseReleaseEvent(ev->pos());
 }

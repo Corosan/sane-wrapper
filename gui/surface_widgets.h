@@ -20,9 +20,10 @@
  *
  * Visual model:
  *
- *            +-------------------+
- *            |    top ruller     |
- *            +-------------------+
+ *     origin(0,0)
+ *        \   +-------------------+
+ *         \  |    top ruller     |
+ *          \ +-------------------+
  *     +---+  +-------------------+  +---+
  *     |   |  |                   |  | r |
  *     | l |  |  +-----------+    |  | i |
@@ -34,15 +35,16 @@
  *     | u |  |                   |  | u |
  *     | l |  |                   |  | l |
  *     | l |  |                   |  | l |
- *     | e |  |    scanner        |  | e |
- *     | r |  |    surface        |  | r |
+ *     | e |  |     drawing       |  | e |
+ *     | r |  |    Qt widget      |  | r |
  *     +---+  +------------------ +  +---+
  *            +-------------------+
  *            |   bottom ruller   |
  *            +-------------------+
  *
- * Each graphical block here is an abstract drawing plane. A widget (graphical
- * primitive) can request an interface to any plane and draw on it.
+ * Each graphical block here is an abstract drawing plane. A widget (not a Qt's
+ * QWidget object but a graphical primitive) can request an interface to any
+ * plane and draw on it.
  *
  * A coordinate system (CS) of a plane can be shifted on any value related to
  * mouse CS for mouse events. The plane coordinate system is consistent between
@@ -50,12 +52,9 @@
  * IUpdatePlane::invalidatePlane(...) - is the same which can be repainted in
  * IPlaneWidget::draw(...).
  *
- * Mouse CS is aligned to a scanner surface window on a screen because it's
- * assumed that user interacts with exactly scanner surface by mouse for making
- * any actions on scanned image. Scanner surface plane CS is shifted related to
- * mouse CS on a IUpdatePlane::visualOffset() value. Thus when event is coming
- * to a controller, widget drawing logic must subtract {visualOffset} from any
- * drawing operations.
+ * Mouse CS is aligned to a drawing Qt widget on a screen because assumed that
+ * user interacts with the Qt widget by mouse for making any actions on scanned
+ * image.
  *
  * Ruller CSs are shifted related to mouse CS as it would be the rullers
  * situated on a top left corner of the surface plane:
@@ -74,6 +73,9 @@
  *     |   |                    |
  *     +---+--------------------+
  *
+ * Mouse CS = Drawing Qt Widget CS = Other Planes' CS + VisualOffset. Thus when
+ * a dot must be placed on a {point[mouse CS]}, drawing primitives must be called
+ * with {point[plane CS]} = {point[mouse CS]} - Visual Offset;
  */
 
 namespace drawing {
@@ -86,15 +88,6 @@ struct IUpdatePlane {
     virtual void invalidatePlane(const QRect &rect) = 0;
     virtual void invalidatePlane(const QRegion &rgn) = 0;
     virtual QSize planeSize() = 0;
-
-    /*!
-     * \return an offset of possibly scrolled origin of an imaginary picture
-     *   related to visual corner of a window client area. Usually it's negative
-     *   numbers because the origin is located to the left and up from visual
-     *   area. If I would have mouse coordinates related to upper left corner of
-     *   a scroll area, a point drawn assuming the offset would be right under
-     *   the mouse cursor.
-     */
     virtual QPoint visualOffset() { return {}; }
 
 protected:
@@ -187,9 +180,11 @@ protected:
 };
 
 struct ISurfaceMouseOps {
-    virtual void onSurfaceMouseEnterEvent(QPoint localPos)= 0;
-    virtual void onSurfaceMouseMoveEvent(QPoint newLocalPos) = 0;
-    virtual void onSurfaceMouseLeaveEvent() = 0;
+    virtual void onSurfaceMouseEnterEvent(QPoint localPos) {}
+    virtual void onSurfaceMouseMoveEvent(QPoint newLocalPos) {}
+    virtual void onSurfaceMouseLeaveEvent() {}
+    virtual void onSurfaceMousePressEvent(QPoint localPos) {}
+    virtual void onSurfaceMouseReleaseEvent(QPoint localPos) {}
 
 protected:
     ~ISurfaceMouseOps() = default;
@@ -237,6 +232,27 @@ private:
     void onUpdatePlane(IUpdatePlane*, IUpdatePlane*, ...);
 };
 
+class DashedRectWidget : PlaneWidgetPart<DashedRectWidget, SurfaceTag> {
+    friend PlaneWidgetPart<DashedRectWidget, SurfaceTag>;
+
+public:
+    DashedRectWidget()
+        : m_dashPen(Qt::DashLine) {
+        m_dashPen.setColor(QColor(255, 32, 32));
+    }
+
+    IPlaneWidget& getView() { return static_cast<IPlaneWidget&>(*this); }
+
+    void setRect(const QRect& rc);
+
+private:
+    QPen m_dashPen;
+    QRect m_rc;
+
+    void draw(IUpdatePlane*, QPainter&, QPaintEvent*, SurfaceTag);
+    void onUpdatePlane(IUpdatePlane*, IUpdatePlane*, SurfaceTag);
+};
+
 class DashedCursorController : public ISurfaceMouseOps {
 public:
     DashedCursorController(IPlaneProvider& pp);
@@ -263,5 +279,6 @@ private:
 
     void recalcCross();
 };
+
 
 } // ns drawing
