@@ -27,6 +27,7 @@
 
 #include <cmath>
 #include <memory>
+#include <functional>
 #include <cassert>
 
 drawing::IPlane& MainWindow::getRullerTopPlane() { return *m_ui->ruller_top; }
@@ -44,7 +45,6 @@ MainWindow::MainWindow(vg_sane::lib::ptr_t saneLibWrapper, QWidget *parent)
 
     m_drawingWidget = std::make_unique<DrawingWidget>(m_ui->scrollArea->viewport());
     m_ui->scrollArea->viewport()->installEventFilter(m_drawingWidget.get());
-    m_drawingWidget->setMouseTracking(true);
 
     m_ui->ruller_top->setOrientation(Ruller::Position::Top);
     m_ui->ruller_right->setOrientation(Ruller::Position::Right);
@@ -238,7 +238,7 @@ void MainWindow::on_actionStartScan_triggered() {
     m_ui->actionMirrorHorz->setEnabled(false);
     m_ui->actionRotateClockwise->setEnabled(false);
     m_ui->actionRotateCounterClockwise->setEnabled(false);
-    m_ui->actionDashCursor->setEnabled(false);
+    m_ui->actionCrop->setEnabled(false);
 
     m_ui->statusbar->showMessage(tr("Scanning..."));
 
@@ -279,7 +279,7 @@ void MainWindow::scannedImageGot(bool status, QString errMsg) {
         m_ui->actionMirrorHorz->setEnabled(true);
         m_ui->actionRotateClockwise->setEnabled(true);
         m_ui->actionRotateCounterClockwise->setEnabled(true);
-        m_ui->actionDashCursor->setEnabled(true);
+        m_ui->actionCrop->setEnabled(true);
     } else {
         QMessageBox::critical(this, this->windowTitle() + tr(" - error"), errMsg);
     }
@@ -365,29 +365,56 @@ void MainWindow::on_actionRotateCounterClockwise_triggered() {
     m_ui->scrollAreaWidgetContents->rotate(false);
 }
 
-void MainWindow::on_actionDashCursor_triggered() {
-    if (! m_dashedCursorController) {
-        m_dashedCursorController = std::make_unique<drawing::DashedCursorController>(
-            static_cast<drawing::IPlaneProvider&>(*this));
+namespace {
 
-        m_dashedCursorController->setSurfaceScale(m_ui->scrollAreaWidgetContents->scale());
-        m_dashedCursorController->setSurfaceImageRect(
+class CropController : public drawing::RectSelectorController {
+public:
+    explicit CropController(drawing::IPlaneProvider& pp, std::function<void(const QRect&)> f)
+        : RectSelectorController(pp), m_f(std::move(f)) {
+    }
+
+private:
+    const std::function<void(QRect&)> m_f;
+
+    void keyPressEvent(QKeyEvent* ev) override {
+        RectSelectorController::keyPressEvent(ev);
+
+        auto rc = getSelectedScannedRect();
+        if (ev->key() == Qt::Key_Return && rc.isValid()) {
+            m_f(rc);
+            setSelectedScannedRect(rc.translated(-rc.topLeft()));
+        }
+    }
+};
+
+}
+
+void MainWindow::on_actionCrop_triggered() {
+    if (! m_rectSelectorController) {
+        m_rectSelectorController = std::make_unique<CropController>(
+            static_cast<drawing::IPlaneProvider&>(*this),
+            [this](const QRect& scannedRc){ m_ui->scrollAreaWidgetContents->crop(scannedRc); });
+
+        m_rectSelectorController->setSurfaceScale(m_ui->scrollAreaWidgetContents->scale());
+        m_rectSelectorController->setSurfaceImageRect(
             m_ui->scrollAreaWidgetContents->scannedDocImageDisplayGeometry().translated(m_scannedImageOffset));
-        m_dashedCursorController->setScannedCoordsChangedCb([this](QPoint p){
-                onDashCursorPositionChanged(p.x(), p.y());
+        m_rectSelectorController->setCursorOrAreaChangedCb([this](const QPoint& coords, const QRect& area){
+                rectSelectorCursorOrAreaChanged(coords, area);
             });
-        //m_ui->scrollAreaWidgetContents->setMouseOpsConsumer(*m_dashedCursorController);
-        m_drawingWidget->setMouseOpsConsumer(m_dashedCursorController.get());
+        //m_ui->scrollAreaWidgetContents->setMouseOpsConsumer(*m_rectSelectorController);
+        m_drawingWidget->setMouseOpsConsumer(m_rectSelectorController.get());
+        m_drawingWidget->setKbdOpsConsumer(m_rectSelectorController.get());
     } else {
         //m_ui->scrollAreaWidgetContents->clearMouseOpsConsumer();
         m_drawingWidget->setMouseOpsConsumer(nullptr);
-        m_dashedCursorController.reset();
+        m_drawingWidget->setKbdOpsConsumer(nullptr);
+        m_rectSelectorController.reset();
     }
 }
 
 void MainWindow::onDrawingImageScaleChanged(float scale) {
-    if (m_dashedCursorController)
-        m_dashedCursorController->setSurfaceScale(scale);
+    if (m_rectSelectorController)
+        m_rectSelectorController->setSurfaceScale(scale);
 
     // The scaling is reported relative to real world in a sense that all the geometry of a scanned image
     // is calculated respective to the screen DPI
@@ -395,8 +422,8 @@ void MainWindow::onDrawingImageScaleChanged(float scale) {
 }
 
 void MainWindow::onDrawingImageGeometryChanged(QRect geometry) {
-    if (m_dashedCursorController)
-        m_dashedCursorController->setSurfaceImageRect(
+    if (m_rectSelectorController)
+        m_rectSelectorController->setSurfaceImageRect(
             geometry.translated(m_scannedImageOffset));
 
     // 'geometry' describes a non-scrolled scanned image prepared for displaying (scaled up).
@@ -429,8 +456,8 @@ void MainWindow::onDrawingImageGeometryChanged(QRect geometry) {
 void MainWindow::onDrawingImageMoved(QPoint pos, QPoint oldPos) {
     m_scannedImageOffset += pos - oldPos;
 
-    if (m_dashedCursorController)
-        m_dashedCursorController->setSurfaceImageRect(
+    if (m_rectSelectorController)
+        m_rectSelectorController->setSurfaceImageRect(
             m_ui->scrollAreaWidgetContents->scannedDocImageDisplayGeometry().translated(m_scannedImageOffset));
 
     if (pos.x() != oldPos.x()) {
@@ -443,15 +470,22 @@ void MainWindow::onDrawingImageMoved(QPoint pos, QPoint oldPos) {
     }
 }
 
-void MainWindow::onDashCursorPositionChanged(int xPxOnScan, int yPxOnScan) {
-    const auto k = 25.4 / m_lastScannedPicDPI;
-    static const auto fmt = tr("%1x%2 (%3x%4 mm)");
+void MainWindow::rectSelectorCursorOrAreaChanged(const QPoint& scanCoords, const QRect& scanSelected) {
+    const auto k = m_lastScannedPicDPI >= 0 ? 25.4 / m_lastScannedPicDPI : 0.0;
+    static const auto fmtPos = tr("%1,%2 (%3,%4 mm)");
+    static const auto fmtSel = tr("sel.: %1,%2 %3x%4 (%5,%6 %7x%8 mm)");
 
-    if (xPxOnScan >= 0 && yPxOnScan >= 0)
-        m_dashPointPositionLabel->setText(
-            fmt.arg(xPxOnScan).arg(yPxOnScan).arg(xPxOnScan * k, 0, 'f', 1).arg(yPxOnScan * k, 0, 'f', 1));
-    else
-        m_dashPointPositionLabel->setText({});
+    QString text;
+    if (scanCoords != QPoint{-1, -1})
+        text = fmtPos.arg(scanCoords.x()).arg(scanCoords.y())
+            .arg(scanCoords.x() * k, 0, 'f', 1).arg(scanCoords.y() * k, 0, 'f', 1);
+    if (! scanSelected.isNull())
+        text += (text.isEmpty() ? "" : "; ") + fmtSel.arg(scanSelected.x()).arg(scanSelected.y())
+            .arg(scanSelected.width()).arg(scanSelected.height())
+            .arg(scanSelected.x() * k, 0, 'f', 1).arg(scanSelected.y() * k, 0, 'f', 1)
+            .arg(scanSelected.width() * k, 0, 'f', 1).arg(scanSelected.height() * k, 0, 'f', 1);
+
+    m_dashPointPositionLabel->setText(text);
 }
 
 //--------------------------------------------------------------------------------------------------

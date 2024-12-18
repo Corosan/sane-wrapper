@@ -112,6 +112,7 @@ public:
 
     void mirror(bool isVertical);
     void rotate(bool isClockWise);
+    void crop(const QRect& scannedRc);
 
 private:
     /*!

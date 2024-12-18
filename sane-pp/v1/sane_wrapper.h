@@ -1,8 +1,6 @@
 // vi: textwidth=100
 #pragma once
 
-#include "sane_wrapper_utils.h"
-
 #ifdef SANE_PP_STUB
 #include "sane_wrapper_stub.h"
 #endif

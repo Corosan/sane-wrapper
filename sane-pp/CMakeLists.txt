@@ -9,13 +9,15 @@ option(SANE_PP_CANCEL_VIA_SIGNAL_SUPPORT "support cancelling by sending a signal
 # FindPackage for it yet
 
 # Simple wrapper library
-add_library(${PROJECT_NAME}-v1 v1/sane_wrapper.cpp v1/sane_wrapper.h)
+file(GLOB srcs v1/*.cpp v1/*.h)
+add_library(${PROJECT_NAME}-v1 ${srcs})
 target_include_directories(${PROJECT_NAME}-v1 PUBLIC v1)
 target_compile_features(${PROJECT_NAME}-v1 PUBLIC cxx_std_20)
 target_link_libraries(${PROJECT_NAME}-v1 PUBLIC sane)
 
 # More complicated asynchronous library
-add_library(${PROJECT_NAME}-v2 v2/sane_wrapper.cpp v2/sane_wrapper.h)
+file(GLOB srcs v2/*.cpp v2/*.h)
+add_library(${PROJECT_NAME}-v2 ${srcs})
 target_include_directories(${PROJECT_NAME}-v2 PUBLIC v2)
 target_compile_features(${PROJECT_NAME}-v2 PUBLIC cxx_std_20)
 target_link_libraries(${PROJECT_NAME}-v2 PUBLIC sane)

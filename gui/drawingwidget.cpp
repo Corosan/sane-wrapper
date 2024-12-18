@@ -40,3 +40,15 @@ void DrawingWidget::mouseReleaseEvent(QMouseEvent* ev) {
     if (m_surfaceMouseOpsConsumer)
         m_surfaceMouseOpsConsumer->onSurfaceMouseReleaseEvent(ev->pos());
 }
+
+void DrawingWidget::keyPressEvent(QKeyEvent* ev) {
+    if (m_surfaceKbdOpsConsumer)
+        m_surfaceKbdOpsConsumer->keyPressEvent(ev);
+    QWidget::keyPressEvent(ev);
+}
+
+void DrawingWidget::keyReleaseEvent(QKeyEvent* ev) {
+    if (m_surfaceKbdOpsConsumer)
+        m_surfaceKbdOpsConsumer->keyReleaseEvent(ev);
+    QWidget::keyReleaseEvent(ev);
+}

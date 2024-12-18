@@ -12,5 +12,6 @@
         <file alias="zoom-in.png">icons/zoom-in.png</file>
         <file alias="zoom-out.png">icons/zoom-out.png</file>
         <file alias="square-dashed.png">icons/square-dashed.png</file>
+        <file alias="crop.png">icons/crop.png</file>
     </qresource>
 </RCC>

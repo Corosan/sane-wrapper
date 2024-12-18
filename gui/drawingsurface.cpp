@@ -146,6 +146,12 @@ void DrawingSurface::rotate(bool isClockWise) {
     recalcScannedDocImageGeometry();
 }
 
+void DrawingSurface::crop(const QRect& scannedRc) {
+    m_scannedDocImage = m_scannedDocImage.copy(scannedRc);
+
+    recalcScannedDocImageGeometry();
+}
+
 namespace {
 
 QPoint dividePoints(QPoint p, float scale, bool roundUp) {

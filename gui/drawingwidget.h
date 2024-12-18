@@ -9,6 +9,7 @@
 #include <QResizeEvent>
 #include <QMoveEvent>
 #include <QMouseEvent>
+#include <QKeyEvent>
 
 #include <QtDebug>
 
@@ -22,8 +23,13 @@ public:
 
     void setMouseOpsConsumer(drawing::ISurfaceMouseOps* v) {
         m_surfaceMouseOpsConsumer = v;
+        setMouseTracking(v);
     }
 
+    void setKbdOpsConsumer(drawing::ISurfaceKbdOps* v) {
+        m_surfaceKbdOpsConsumer = v;
+        setFocusPolicy(v ? Qt::StrongFocus : Qt::NoFocus);
+    }
 private:
     // This widget receives editing mouse events which should be propagated to currently existing
     // drawing controller. A controller is hold my MainWindow object typically. It could be better
@@ -33,6 +39,11 @@ private:
     // using just a base Event type for event objects provided into enterEvent(...) handler of a
     // Widget.
     drawing::ISurfaceMouseOps* m_surfaceMouseOpsConsumer = nullptr;
+    drawing::ISurfaceKbdOps* m_surfaceKbdOpsConsumer = nullptr;
+
+    void setCursorShape(Qt::CursorShape v) override {
+        setCursor(v);
+    }
 
     void paintEvent(QPaintEvent* ev) override {
         QPainter p(this);
@@ -51,6 +62,8 @@ private:
     void mouseMoveEvent(QMouseEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
     void mouseReleaseEvent(QMouseEvent*) override;
+    void keyPressEvent(QKeyEvent*) override;
+    void keyReleaseEvent(QKeyEvent*) override;
 
     // drawing::IUpdatePlane interface implementation
 

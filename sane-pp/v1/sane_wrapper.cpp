@@ -3,7 +3,6 @@
 #include "sane_wrapper_utils.h"
 
 #include <stdexcept>
-#include <system_error>
 
 #include <unistd.h>
 #include <sys/select.h>

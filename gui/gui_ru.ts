@@ -155,6 +155,11 @@
         <translation>Панель инструментов</translation>
     </message>
     <message>
+        <location filename="mainwindow.ui" line="318"/>
+        <source>Crop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Start</source>
         <translation type="vanished">Старт</translation>
     </message>
@@ -262,27 +267,33 @@
         <translation>Нельзя закрыть приложение пока запущено сканирование</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="394"/>
+        <location filename="mainwindow.cpp" line="421"/>
         <source>x %1</source>
         <oldsource>x%1</oldsource>
         <translation>x %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="448"/>
-        <source>%1x%2 (%3x%4 mm)</source>
-        <translation>%1x%2 (%3x%4 мм)</translation>
+        <location filename="mainwindow.cpp" line="475"/>
+        <source>%1,%2 (%3,%4 mm)</source>
+        <oldsource>%1x%2 (%3x%4 mm)</oldsource>
+        <translation type="unfinished">%1x%2 (%3x%4 мм)</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="476"/>
+        <source>sel.: %1,%2 %3x%4 (%5,%6 %7x%8 mm)</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>scale: %1</source>
         <translation type="vanished">масштаб: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="423"/>
+        <location filename="mainwindow.cpp" line="450"/>
         <source>cm</source>
         <translation>см</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="423"/>
+        <location filename="mainwindow.cpp" line="450"/>
         <source>mm</source>
         <translation>мм</translation>
     </message>

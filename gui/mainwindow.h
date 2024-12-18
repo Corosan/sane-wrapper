@@ -40,7 +40,7 @@ private slots:
     void onDrawingImageScaleChanged(float);
     void onDrawingImageMoved(QPoint, QPoint);
     void onDrawingImageGeometryChanged(QRect);
-    void onDashCursorPositionChanged(int, int);
+    void rectSelectorCursorOrAreaChanged(const QPoint&, const QRect&);
     void scanProgress(QVariant);
 
     void on_btnReloadDevs_clicked();
@@ -54,7 +54,7 @@ private slots:
     void on_actionMirrorHorz_triggered();
     void on_actionRotateClockwise_triggered();
     void on_actionRotateCounterClockwise_triggered();
-    void on_actionDashCursor_triggered();
+    void on_actionCrop_triggered();
 
 private:
     std::unique_ptr<Ui::MainWindow> m_ui;
@@ -81,7 +81,7 @@ private:
     QPoint m_scannedImageOffset;
 
     std::unique_ptr<Capturer> m_imageCapturer;
-    std::unique_ptr<drawing::DashedCursorController> m_dashedCursorController;
+    std::unique_ptr<drawing::RectSelectorController> m_rectSelectorController;
 
     void closeEvent(QCloseEvent*) override;
     void showEvent(QShowEvent*) override;

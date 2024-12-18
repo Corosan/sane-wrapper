@@ -2,6 +2,7 @@
 
 #include <QPainter>
 #include <QPaintEvent>
+#include <QKeyEvent>
 #include <QRect>
 #include <QSize>
 #include <QRegion>
@@ -89,6 +90,7 @@ struct IUpdatePlane {
     virtual void invalidatePlane(const QRegion &rgn) = 0;
     virtual QSize planeSize() = 0;
     virtual QPoint visualOffset() { return {}; }
+    virtual void setCursorShape(Qt::CursorShape) {}
 
 protected:
     ~IUpdatePlane() = default;
@@ -190,6 +192,14 @@ protected:
     ~ISurfaceMouseOps() = default;
 };
 
+struct ISurfaceKbdOps {
+    virtual void keyPressEvent(QKeyEvent*) {}
+    virtual void keyReleaseEvent(QKeyEvent*) {}
+
+protected:
+    ~ISurfaceKbdOps() = default;
+};
+
 //-----------------------------------------------------------------------------
 
 namespace details {
@@ -239,11 +249,15 @@ public:
     DashedRectWidget()
         : m_dashPen(Qt::DashLine) {
         m_dashPen.setColor(QColor(255, 32, 32));
+        m_dashPen.setWidthF(1.5f);
     }
 
     IPlaneWidget& getView() { return static_cast<IPlaneWidget&>(*this); }
 
     void setRect(const QRect& rc);
+    void setCursorShape(Qt::CursorShape v) {
+        m_plane->setCursorShape(v);
+    }
 
 private:
     QPen m_dashPen;
@@ -258,9 +272,15 @@ public:
     DashedCursorController(IPlaneProvider& pp);
     ~DashedCursorController();
 
-    void setSurfaceScale(float);
-    void setSurfaceImageRect(const QRect&);
-    void setScannedCoordsChangedCb(std::function<void(QPoint)> cb) {
+    void setSurfaceScale(float v) {
+        m_surfaceScale = v;
+        visualUpdate();
+    }
+    void setSurfaceImageRect(const QRect& rc) {
+        m_surfaceRect = rc;
+        visualUpdate();
+    }
+    void setScannedCoordsChangedCb(std::function<void(QPoint, QPoint)> cb) {
         m_scannedCoordsChangedCb = std::move(cb);
     }
     void onSurfaceMouseEnterEvent(QPoint localPos) override;
@@ -268,17 +288,85 @@ public:
     void onSurfaceMouseLeaveEvent() override;
 
 private:
-    IPlaneProvider* m_pp;
+    IPlaneProvider& m_pp;
     float m_surfaceScale = 1.0;
     QRect m_surfaceRect;
     DashedCursorLineWidget<true> m_horzLine;
     DashedCursorLineWidget<false> m_vertLine;
     QPoint m_lastCursorPos{-1, -1};
-    QPoint m_surfaceScannedCoords;
-    std::function<void(QPoint)> m_scannedCoordsChangedCb;
+    QPoint m_surfaceScannedCoords{-1, -1};
+    QPoint m_visualCoords{-1, -1};
+    std::function<void(QPoint, QPoint)> m_scannedCoordsChangedCb;
 
-    void recalcCross();
+    // {m_lastCursorPos, m_surfaceScale, m_surfaceRect} -> {m_surfaceScannedCoords, m_visualCoords}
+    // The method calls cb in case of any change in the result
+    void visualUpdate();
 };
 
+class RectSelectorController : public ISurfaceMouseOps, public ISurfaceKbdOps {
+public:
+    RectSelectorController(IPlaneProvider& pp);
+    ~RectSelectorController();
+
+    void setSurfaceScale(float v) {
+        m_surfaceScale = v;
+        m_dashedCursor.setSurfaceScale(v);
+        selectedRectVisualUpdate();
+    }
+    void setSurfaceImageRect(const QRect& rc) {
+        m_surfaceRect = rc;
+        m_dashedCursor.setSurfaceImageRect(rc);
+        selectedRectVisualUpdate();
+    }
+
+    void setCursorOrAreaChangedCb(std::function<void(const QPoint&, const QRect&)> cb) {
+        m_cursorOrAreaChangedCb = std::move(cb);
+    }
+
+    QRect getSelectedScannedRect() const {
+        return m_state == State::Selected ? m_selectedScannedRect : QRect();
+    }
+
+    void setSelectedScannedRect(const QRect& rc) {
+        m_selectedScannedRect = rc;
+        selectedRectVisualUpdate();
+    }
+
+private:
+    IPlaneProvider& m_pp;
+    DashedRectWidget m_rectWidget;
+    DashedCursorController m_dashedCursor;
+    std::function<void(const QPoint&, const QRect&)> m_cursorOrAreaChangedCb;
+
+    enum class State : char {
+        Initial, StartPressed, SelectingPressed, Selecting, SelectingWaitRelease, Selected, Resizing
+    } m_state = State::Initial;
+    enum class ResizeState : char {
+        None, TopLeft, Top, TopRight, Right, BottomRight, Bottom, BottomLeft, Left
+    } m_resizeState = ResizeState::None;
+
+    float m_surfaceScale = 1.0;
+    QRect m_surfaceRect;
+    QRect m_selectedScannedRect, m_selectedScannedRectBeforeEdit;
+    QRect m_selectedDrawnRect;
+
+    QPoint m_lastScannedCoordsCursorPos;
+    QPoint m_startPoint;
+    bool m_isCtrlPressed = false;
+
+    void selectedRectVisualUpdate();
+    void onScannedCoordsChanged(const QPoint&, const QPoint&);
+
+protected:
+    void onSurfaceMouseEnterEvent(QPoint localPos) override;
+    void onSurfaceMouseMoveEvent(QPoint localPos) override;
+    void onSurfaceMouseLeaveEvent() override;
+
+    void onSurfaceMousePressEvent(QPoint localPos) override;
+    void onSurfaceMouseReleaseEvent(QPoint localPos) override;
+
+    void keyPressEvent(QKeyEvent*) override;
+    void keyReleaseEvent(QKeyEvent*) override;
+};
 
 } // ns drawing

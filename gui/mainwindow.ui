@@ -220,7 +220,7 @@
    <addaction name="actionMirrorHorz"/>
    <addaction name="actionRotateClockwise"/>
    <addaction name="actionRotateCounterClockwise"/>
-   <addaction name="actionDashCursor"/>
+   <addaction name="actionCrop"/>
   </widget>
   <action name="actionStartScan">
    <property name="enabled">
@@ -303,7 +303,7 @@
      <normaloff>:/icons/rotate-counter-clock.png</normaloff>:/icons/rotate-counter-clock.png</iconset>
    </property>
   </action>
-  <action name="actionDashCursor">
+  <action name="actionCrop">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -312,7 +312,13 @@
    </property>
    <property name="icon">
     <iconset resource="rc/app.qrc">
-     <normaloff>:/icons/square-dashed.png</normaloff>:/icons/square-dashed.png</iconset>
+     <normaloff>:/icons/crop.png</normaloff>:/icons/crop.png</iconset>
+   </property>
+   <property name="text">
+    <string>Crop</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::TextHeuristicRole</enum>
    </property>
   </action>
  </widget>
