@@ -408,6 +408,7 @@ void MainWindow::on_actionCrop_triggered() {
         //m_ui->scrollAreaWidgetContents->clearMouseOpsConsumer();
         m_drawingWidget->setMouseOpsConsumer(nullptr);
         m_drawingWidget->setKbdOpsConsumer(nullptr);
+        m_dashPointPositionLabel->setText({});
         m_rectSelectorController.reset();
     }
 }
